@@ -1,38 +1,118 @@
-from fastapi import FastAPI, File, UploadFile
+# backend/main.py
+from fastapi import FastAPI, File, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
+from pathlib import Path
+from typing import List
+from urllib.parse import quote
 import os
-import shutil
+# from dotenv import load_dotenv
+import json
+
+
+# Load environment variables from .env file
+# load_dotenv()
 
 app = FastAPI()
 
-# Allow React frontend to connect
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change to your frontend URL in production
+    allow_origins=["*"],  # In dev: allow all origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+ADOBE_CLIENT_ID = os.getenv("ADOBE_CLIENT_ID")
 
-@app.post("/upload")
-async def upload_files(files: list[UploadFile] = File(...)):
-    uploaded_files = []
+# @app.get("/adobe-client-id")
+# def get_adobe_client_id():
+#     return {"clientId": ADOBE_CLIENT_ID}
+
+
+UPLOAD_DIR = Path("documents")
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+# Serve static files from /files/<filename>
+app.mount("/files", StaticFiles(directory=UPLOAD_DIR), name="files")
+
+
+@app.post("/upload/")
+async def upload(files: List[UploadFile] = File(...)):
+    saved_files = []
     skipped_files = []
 
     for file in files:
-        file_path = os.path.join(UPLOAD_DIR, file.filename)
-        if os.path.exists(file_path):
+        dest = UPLOAD_DIR / file.filename
+        if dest.exists():
             skipped_files.append(file.filename)
-            continue
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        uploaded_files.append(file.filename)
+        else:
+            with open(dest, "wb") as f:
+                f.write(await file.read())
+            saved_files.append(file.filename)
 
-    return {
-        "message": "Upload completed",
-        "uploaded": uploaded_files,
-        "skipped": skipped_files,
+    # return full URL-encoded URLs for saved files
+    saved_file_urls = [
+        f"http://127.0.0.1:8000/files/{quote(name)}" for name in saved_files
+    ]
+
+    return JSONResponse(
+        {
+            "message": "Upload complete",
+            "saved_files": saved_file_urls,     # full URLs (for immediate viewing)
+            "skipped_files": skipped_files,    # names of skipped files
+        }
+    )
+
+@app.get("/list-files/")
+async def list_files():
+    files = sorted([p.name for p in UPLOAD_DIR.iterdir() if p.is_file()])
+    file_objs = [
+        {"name": name, "url": f"http://127.0.0.1:8000/files/{quote(name)}"}
+        for name in files
+    ]
+    return {"files": file_objs}
+
+INPUT_FILE = "input\input.json"
+@app.post("/save-input")
+async def save_input(request: Request):
+    # Parse JSON body directly
+    data = await request.json()
+    persona = data.get("persona", "")
+    job = data.get("job", "")
+
+    # List uploaded files in uploads folder
+    files = [
+        f for f in os.listdir(UPLOAD_DIR)
+        if os.path.isfile(os.path.join(UPLOAD_DIR, f))
+    ]
+
+    # Create JSON structure
+    input_data = {
+        
+        "challenge_info": {
+            "challenge_id": "round_1b_001",
+            "test_case_name": "menu_planning",
+            "description": "Dinner menu planning"
+        },
+        "documents": [
+            {
+                "filename": f,
+                "title": os.path.splitext(f)[0]
+            }
+            for f in files
+        ],
+        "persona": {
+        "role": persona
+    },
+    "job_to_be_done": {
+        "task": job
     }
+    }
+
+    # Save to input.json
+    with open(INPUT_FILE, "w") as f:
+        json.dump(input_data, f, indent=4)
+
+    return {"message": "Input data saved successfully!"}
