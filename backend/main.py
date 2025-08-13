@@ -7,15 +7,11 @@ from pathlib import Path
 from typing import List
 from urllib.parse import quote
 import os
+# from backend.brains_1b import custom_parser
+from brains_1b import r_1b
 # from dotenv import load_dotenv
 import json
-
-
-# Load environment variables from .env file
-# load_dotenv()
-
 app = FastAPI()
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # In dev: allow all origin
@@ -74,7 +70,7 @@ async def list_files():
     ]
     return {"files": file_objs}
 
-INPUT_FILE = "input\input.json"
+INPUT_FILE = "input/input.json"
 @app.post("/save-input")
 async def save_input(request: Request):
     # Parse JSON body directly
@@ -110,9 +106,8 @@ async def save_input(request: Request):
         "task": job
     }
     }
-
     # Save to input.json
     with open(INPUT_FILE, "w") as f:
         json.dump(input_data, f, indent=4)
-
+    r_1b.core()
     return {"message": "Input data saved successfully!"}
