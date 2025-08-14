@@ -8,6 +8,45 @@ from sentence_transformers import CrossEncoder
 import torch
 from . import custom_parser
 import re
+import pickle
+import hashlib
+
+# def get_file_hash(file_path):
+#     """Create a hash for file contents so cache updates if file changes."""
+#     hasher = hashlib.md5()
+#     with open(file_path, "rb") as f:
+#         buf = f.read()
+#         hasher.update(buf)
+#     return hasher.hexdigest()
+
+# def get_embeddings_with_cache(file_path, model):
+#     """
+#     Extract text sections and load/create cached embeddings for a PDF.
+#     Returns: sections (list of dict), texts (list), embeddings (torch.Tensor)
+#     """
+#     cache_dir = "cache_embeddings"
+#     os.makedirs(cache_dir, exist_ok=True)
+
+#     file_hash = get_file_hash(file_path)
+#     cache_file = os.path.join(cache_dir, f"{os.path.basename(file_path)}_{file_hash}.pkl")
+
+#     if os.path.exists(cache_file):
+#         print(f"Loading cached embeddings for {file_path}")
+#         with open(cache_file, "rb") as f:
+#             cached_data = pickle.load(f)
+#         return cached_data["sections"], cached_data["texts"], cached_data["embeddings"]
+
+#     print(f"Generating embeddings for {file_path}")
+#     sections = extract_sections_from_pdf(file_path)
+#     texts = [sec["text"] for sec in sections if sec.get("text") and sec["text"].strip()]
+#     #per file
+#     embeddings = model.encode(texts, convert_to_tensor=True)
+
+#     # Save to cache
+#     with open(cache_file, "wb") as f:
+#         pickle.dump({"sections": sections, "embeddings": embeddings}, f)
+
+#     return sections, texts, embeddings
 
 def extract_sections_from_pdf(file_path):
     sections = custom_parser.process_multiple_documents([file_path])
@@ -25,6 +64,7 @@ def extract_from_multiple_pdfs(folder_path, filenames):
 
     return all_sections
 def create_dynamic_keyword_lists(filters, model=None, all_texts=None):
+
     """
     Dynamically create keyword lists using multiple strategies:
     1. Linguistic pattern analysis (X-free, negations, etc.)
@@ -291,6 +331,64 @@ def parse_generic_query(query):
     
     return filters
 
+# def core():
+#     with open("input/input.json", "r", encoding="utf-8") as f:
+#         input_data = json.load(f)
+#         documents_info = input_data["documents"]
+#         persona_description = input_data["persona"]["role"]
+#         job_to_be_done = input_data["job_to_be_done"]["task"]
+#         query = persona_description + " " + job_to_be_done
+#         pdf_folder = "documents"
+#         pdf_files = [doc["filename"] for doc in documents_info]
+#         # ---- STEP 2: Extract Sections ----
+#         # You must have this function already defined and working
+#         all_content = extract_from_multiple_pdfs(pdf_folder, pdf_files)
+#         print("Extracted:", len(all_content), "sections")
+#         all_sections = [sec for sec in all_content if sec.get("text") and sec["text"].strip()]
+#         texts = [sec["text"] for sec in all_sections]
+#         print("Number of non-empty sections:", len(texts))
+#         # ---- STEP 3: Sentence Embeddings ----
+#         model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+#         #model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2",cache_folder="/root/.cache",local_files_only=True)
+#         query_embedding = model.encode(query, convert_to_tensor=True)
+#         ###section embeddings shd be givennnn
+#         ##
+        
+#         cache_dir = "cache_embeddings"
+#         os.makedirs(cache_dir, exist_ok=True)
+#         cache_file = os.path.join(cache_dir, f"{os.path.basename("abcd")}.pkl")
+#         section_embeddings = model.encode(texts, convert_to_tensor=True)
+#         with open(cache_file, "wb") as f:
+#             pickle.dump({"sections": section_embeddings}, f)
+
+#         cosine_scores = util.cos_sim(query_embedding, section_embeddings)[0]
+
+#         # Step 4A: Bi-encoder Top-K
+#         cosine_top_k = 40  # or adjust based on dataset size
+#         top_indices = torch.topk(cosine_scores, k=cosine_top_k).indices.tolist()
+#         top_sections_raw = [all_sections[i] for i in top_indices]
+#         top_texts_raw = [texts[i] for i in top_indices]
+
+#     filters = parse_generic_query(query)
+#     # print(f"Parsed filters: {filters}")
+
+#     top_sections = []
+#     top_texts = []
+#     for sec, txt in zip(top_sections_raw, top_texts_raw):
+#         if check_constraints(txt, filters, model, texts):
+#             top_sections.append(sec)
+#             top_texts.append(txt)
+
+#     print(f"After filtering: {len(top_sections)} sections remain out of {len(top_sections_raw)}")
+
+def md5_of_file(filepath):
+    """Compute MD5 hash of a file to detect changes."""
+    hash_md5 = hashlib.md5()
+    with open(filepath, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
 def core():
     with open("input/input.json", "r", encoding="utf-8") as f:
         input_data = json.load(f)
@@ -298,31 +396,67 @@ def core():
         persona_description = input_data["persona"]["role"]
         job_to_be_done = input_data["job_to_be_done"]["task"]
         query = persona_description + " " + job_to_be_done
-        pdf_folder = "documents"
-        pdf_files = [doc["filename"] for doc in documents_info]
+
+    pdf_folder = "documents"
+    pdf_files = [doc["filename"] for doc in documents_info]
+
+    # Generate hash for all PDFs to detect new/changed files
+    file_hashes = {file: md5_of_file(os.path.join(pdf_folder, file)) for file in pdf_files}
+
+    cache_dir = "cache_embeddings"
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_file = os.path.join(cache_dir, "embeddings.pkl")
+
+    use_cache = False
+    if os.path.exists(cache_file):
+        with open(cache_file, "rb") as f:
+            cache_data = pickle.load(f)
+        cached_hashes = cache_data.get("file_hashes", {})
+        
+        # Compare hashes
+        if cached_hashes == file_hashes:
+            use_cache = True
+            section_embeddings = cache_data["sections"]
+            all_sections = cache_data["all_sections"]
+            texts = cache_data["texts"]
+            print("✅ Using cached embeddings.")
+        else:
+            print("⚠ PDF files changed. Regenerating embeddings...")
+    else:
+        print("⚠ No cache found. Generating embeddings...")
+
+    if not use_cache:
         # ---- STEP 2: Extract Sections ----
-        # You must have this function already defined and working
         all_content = extract_from_multiple_pdfs(pdf_folder, pdf_files)
         print("Extracted:", len(all_content), "sections")
         all_sections = [sec for sec in all_content if sec.get("text") and sec["text"].strip()]
         texts = [sec["text"] for sec in all_sections]
         print("Number of non-empty sections:", len(texts))
+
         # ---- STEP 3: Sentence Embeddings ----
         model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-        #model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2",cache_folder="/root/.cache",local_files_only=True)
-        query_embedding = model.encode(query, convert_to_tensor=True)
         section_embeddings = model.encode(texts, convert_to_tensor=True)
-        cosine_scores = util.cos_sim(query_embedding, section_embeddings)[0]
 
-        # Step 4A: Bi-encoder Top-K
-        cosine_top_k = 40  # or adjust based on dataset size
-        top_indices = torch.topk(cosine_scores, k=cosine_top_k).indices.tolist()
-        top_sections_raw = [all_sections[i] for i in top_indices]
-        top_texts_raw = [texts[i] for i in top_indices]
+        # Save to cache
+        with open(cache_file, "wb") as f:
+            pickle.dump({
+                "sections": section_embeddings,
+                "all_sections": all_sections,
+                "texts": texts,
+                "file_hashes": file_hashes
+            }, f)
+
+    # ---- Step 4: Query Embedding & Search ----
+    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    query_embedding = model.encode(query, convert_to_tensor=True)
+
+    cosine_scores = util.cos_sim(query_embedding, section_embeddings)[0]
+    cosine_top_k = 40
+    top_indices = torch.topk(cosine_scores, k=cosine_top_k).indices.tolist()
+    top_sections_raw = [all_sections[i] for i in top_indices]
+    top_texts_raw = [texts[i] for i in top_indices]
 
     filters = parse_generic_query(query)
-    # print(f"Parsed filters: {filters}")
-
     top_sections = []
     top_texts = []
     for sec, txt in zip(top_sections_raw, top_texts_raw):
@@ -331,7 +465,6 @@ def core():
             top_texts.append(txt)
 
     print(f"After filtering: {len(top_sections)} sections remain out of {len(top_sections_raw)}")
-
     # Improved fallback: if everything is filtered due to strict constraints,
     # try to relax constraints or increase the initial top_k
     if not top_sections:
