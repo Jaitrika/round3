@@ -8,7 +8,7 @@ from typing import List
 from urllib.parse import quote
 import os
 # from backend.brains_1b import custom_parser
-from brains_1b import r_1b
+from .brains_1b import r_1b
 # from dotenv import load_dotenv
 import json
 app = FastAPI()
@@ -27,7 +27,8 @@ ADOBE_CLIENT_ID = os.getenv("ADOBE_CLIENT_ID")
 #     return {"clientId": ADOBE_CLIENT_ID}
 
 
-UPLOAD_DIR = Path("documents")
+# Use documents folder inside backend directory
+UPLOAD_DIR = Path(__file__).parent / "documents"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 # Serve static files from /files/<filename>
@@ -70,7 +71,10 @@ async def list_files():
     ]
     return {"files": file_objs}
 
-INPUT_FILE = "input/input.json"
+# Use input folder inside backend directory
+INPUT_FILE = Path(__file__).parent / "input" / "input.json"
+# Create input directory if it doesn't exist
+Path(INPUT_FILE).parent.mkdir(exist_ok=True)
 @app.post("/save-input")
 async def save_input(request: Request):
     # Parse JSON body directly
@@ -109,5 +113,9 @@ async def save_input(request: Request):
     # Save to input.json
     with open(INPUT_FILE, "w") as f:
         json.dump(input_data, f, indent=4)
+    
+    print(f"Saved input data to: {INPUT_FILE}")
+    print(f"Documents folder location: {UPLOAD_DIR}")
+    
     r_1b.core()
     return {"message": "Input data saved successfully!"}

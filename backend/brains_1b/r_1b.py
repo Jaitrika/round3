@@ -390,18 +390,45 @@ def md5_of_file(filepath):
     return hash_md5.hexdigest()
 
 def core():
-    with open("input/input.json", "r", encoding="utf-8") as f:
+    # Get paths relative to backend directory
+    backend_dir = os.path.dirname(os.path.dirname(__file__))
+    input_dir = os.path.join(backend_dir, "input")
+    input_file = os.path.join(input_dir, "input.json")
+    
+    print(f"Loading input from: {input_file}")
+    with open(input_file, "r", encoding="utf-8") as f:
         input_data = json.load(f)
         documents_info = input_data["documents"]
         persona_description = input_data["persona"]["role"]
         job_to_be_done = input_data["job_to_be_done"]["task"]
         query = persona_description + " " + job_to_be_done
 
-    pdf_folder = "documents"
-    pdf_files = [doc["filename"] for doc in documents_info]
+    # Setup paths relative to backend directory
+    backend_dir = os.path.dirname(os.path.dirname(__file__))
+    pdf_folder = os.path.join(backend_dir, "documents")
+    os.makedirs(pdf_folder, exist_ok=True)
+    
+    print(f"Looking for PDFs in: {pdf_folder}")
+    print(f"Documents info received: {documents_info}")
+    
+    # Only process files that exist in both documents_info and the folder
+    available_files = set(os.listdir(pdf_folder))
+    pdf_files = [doc["filename"] for doc in documents_info if doc["filename"] in available_files]
+    
+    if not pdf_files:
+        raise FileNotFoundError("No PDF files found in the documents folder that match the input.json list")
+    
+    print(f"PDF files found and will be processed: {pdf_files}")
 
     # Generate hash for all PDFs to detect new/changed files
-    file_hashes = {file: md5_of_file(os.path.join(pdf_folder, file)) for file in pdf_files}
+    file_hashes = {}
+    for file in pdf_files:
+        full_path = os.path.join(pdf_folder, file)
+        try:
+            file_hashes[file] = md5_of_file(full_path)
+        except Exception as e:
+            print(f"Warning: Could not process {file}: {str(e)}")
+            continue
 
     cache_dir = "cache_embeddings"
     os.makedirs(cache_dir, exist_ok=True)
@@ -541,8 +568,17 @@ def core():
         })
 
     # ---- STEP 6: Save Output ----
-    with open("output/output.json", "w", encoding="utf-8") as f:
+    # Setup output path relative to backend directory
+    backend_dir = os.path.dirname(os.path.dirname(__file__))
+    output_dir = os.path.join(backend_dir, "output")
+    output_file = os.path.join(output_dir, "output.json")
+    
+    # Create output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+    
+    print(f"Saving output to: {output_file}")
+    with open(output_file, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=4, ensure_ascii=False)
 
-    print(" Output saved")
+    print(" Output saved successfully")
 
