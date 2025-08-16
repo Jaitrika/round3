@@ -1,41 +1,41 @@
 // frontend/src/App.js
-import React, { useState } from "react";
-import FileUploader from "./components/FileUploader";
-import FileList from "./components/FileList";
-import PDFViewer from "./components/PDFViewer";
-import PersonaJobForm from "./components/PersonaJobForm"; 
+// import React, { useState } from "react";
+// import FileUploader from "./components/FileUploader";
+// import FileList from "./components/FileList";
+// import PDFViewer from "./components/PDFViewer";
+// import PersonaJobForm from "./components/PersonaJobForm"; 
 
-function App() {
-  const [selectedUrl, setSelectedUrl] = useState(null);
-  const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c"; 
+// function App() {
+//   const [selectedUrl, setSelectedUrl] = useState(null);
+//   const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c"; 
 
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 12 }}>
-      <div>
-        {/* Persona + Job form at the top */}
-        <PersonaJobForm />
+//   return (
+   
+//     <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 12 }}>
+//       <div>
+//         {/* Persona + Job form at the top */}
+//         <PersonaJobForm />
 
-        <hr style={{ margin: "12px 0" }} />
+//         <hr style={{ margin: "12px 0" }} />
 
-        {/* File uploader + list */}
-        <FileUploader onUploadComplete={(url) => setSelectedUrl(url)} />
-        <FileList onSelect={(url) => setSelectedUrl(url)} />
-      </div>
+//         {/* File uploader + list */}
+//         <FileUploader onUploadComplete={(url) => setSelectedUrl(url)} />
+//         <FileList onSelect={(url) => setSelectedUrl(url)} />
+//       </div>
+//       <div>
+//         {selectedUrl ? (
+//           <PDFViewer fileUrl={selectedUrl} clientId={ADOBE_CLIENT_ID} />
+//         ) : (
+//           <div style={{ padding: 20 }}>
+//             No PDF selected. Upload or choose from the list.
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
 
-      <div>
-        {selectedUrl ? (
-          <PDFViewer fileUrl={selectedUrl} clientId={ADOBE_CLIENT_ID} />
-        ) : (
-          <div style={{ padding: 20 }}>
-            No PDF selected. Upload or choose from the list.
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default App;
+// export default App;
 
 // import React, { useState, useEffect } from "react";
 // import FileUploader from "./components/FileUploader";
@@ -79,3 +79,172 @@ export default App;
 // }
 
 //export default App;
+// import React, { useState } from "react";
+// import FileUploader from "./components/FileUploader";
+// import FileList from "./components/FileList";
+// import PDFViewer from "./components/PDFViewer";
+// import PersonaJobForm from "./components/PersonaJobForm";
+// import analysis from "../../backend/output/output.json"; // this has subsection_analysis
+
+// function App() {
+//   const [selectedUrl, setSelectedUrl] = useState(null);
+//   const [jumpCommand, setJumpCommand] = useState(null);
+//   const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c";
+
+//   return (
+//     <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 12 }}>
+//       <div>
+//         <PersonaJobForm />
+//         <hr style={{ margin: "12px 0" }} />
+
+//         <FileUploader onUploadComplete={(url) => setSelectedUrl(url)} />
+//         <FileList onSelect={(url) => setSelectedUrl(url)} />
+
+//         {analysis.subsection_analysis?.map((sec, idx) => (
+//           <button
+//             key={idx}
+//             style={{ display: "block", marginTop: 8 }}
+//             onClick={() =>
+//               setJumpCommand({ page: sec.page, text: sec.text })
+//             }
+//           >
+//             Go to {sec.section}
+//           </button>
+//         ))}
+//       </div>
+
+//       <div>
+//         {selectedUrl ? (
+//           <PDFViewer
+//             fileUrl={selectedUrl}
+//             clientId={ADOBE_CLIENT_ID}
+//             jumpCommand={jumpCommand}
+//           />
+//         ) : (
+//           <div style={{ padding: 20 }}>
+//             No PDF selected. Upload or choose from the list.
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default App;
+import React, { useState } from "react";
+import FileUploader from "./components/FileUploader";
+import FileList from "./components/FileList";
+import PDFViewer from "./components/PDFViewer";
+import PersonaJobForm from "./components/PersonaJobForm";
+import analysis from "./output/output.json";
+
+function App() {
+  const [selectedUrl, setSelectedUrl] = useState(null);
+  const [jumpCommand, setJumpCommand] = useState(null);
+  const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c";
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 12 }}>
+      <div>
+        <PersonaJobForm />
+        <hr style={{ margin: "12px 0" }} />
+
+        <FileUploader onUploadComplete={(url) => {
+          setSelectedUrl(url);
+          setJumpCommand(null); // Reset jump command for normal viewing
+        }} />
+        <FileList onSelect={(url) => {
+          setSelectedUrl(url);
+          setJumpCommand(null); // Reset jump command for normal viewing
+        }} />
+
+        {analysis.subsection_analysis?.map((sec, idx) => {
+          const sectionData = analysis.extracted_sections[idx];
+          const documentUrl = `/documents/${sectionData.document}`;
+          
+          return (
+            <button
+              key={idx}
+              style={{ display: "block", marginTop: 8, width: "100%", padding: "8px", marginBottom: "4px" }}
+              onClick={() => {
+                // Ensure clean path without any double slashes
+                const cleanDocName = sectionData.document.replace(/^\/+|\/+$/g, '');
+                const documentUrl = `http://127.0.0.1:8000/files/${cleanDocName}`;
+                console.log("Setting URL:", documentUrl);
+                setSelectedUrl(documentUrl);
+                
+                // Add a small delay before setting the jump command
+                setTimeout(() => {
+                  const jumpData = {
+                    page: sectionData.page_number,
+                    text: sec.refined_text?.trim()
+                  };
+                  console.log("Setting jump command:", jumpData);
+                  setJumpCommand(jumpData);
+                }, 1000);
+              }}
+            >
+              Go to {sectionData.section_title}
+            </button>
+          );
+        })}
+      </div>
+
+      <div>
+        {selectedUrl ? (
+          <PDFViewer
+            fileUrl={selectedUrl}
+            clientId={ADOBE_CLIENT_ID}
+            jumpCommand={jumpCommand}
+          />
+        ) : (
+          <div style={{ padding: 20 }}>
+            No PDF selected. Upload or choose from the list.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default App;
+
+
+// // frontend/src/App.js
+// import React, { useState } from "react";
+// import FileUploader from "./components/FileUploader";
+// import FileList from "./components/FileList";
+// import PDFViewer from "./components/PDFViewer";
+// import PersonaJobForm from "./components/PersonaJobForm"; 
+
+// function App() {
+//   const [selectedUrl, setSelectedUrl] = useState(null);
+//   const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c"; 
+
+//   return (
+//     <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 12 }}>
+//       <div>
+//         {/* Persona + Job form at the top */}
+//         <PersonaJobForm />
+
+//         <hr style={{ margin: "12px 0" }} />
+
+//         {/* File uploader + list */}
+//         <FileUploader onUploadComplete={(url) => setSelectedUrl(url)} />
+//         <FileList onSelect={(url) => setSelectedUrl(url)} />
+//       </div>
+
+//       <div>
+//         {selectedUrl ? (
+//           <PDFViewer fileUrl={selectedUrl} clientId={ADOBE_CLIENT_ID} />
+//         ) : (
+//           <div style={{ padding: 20 }}>
+//             No PDF selected. Upload or choose from the list.
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default App;

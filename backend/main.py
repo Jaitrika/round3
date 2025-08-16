@@ -2,7 +2,7 @@
 from fastapi import FastAPI, File, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from pathlib import Path
 from typing import List
 from urllib.parse import quote
@@ -81,6 +81,7 @@ async def save_input(request: Request):
     data = await request.json()
     persona = data.get("persona", "")
     job = data.get("job", "")
+    selected_text = data.get("selected_text", "")
 
     # List uploaded files in uploads folder
     files = [
@@ -108,7 +109,8 @@ async def save_input(request: Request):
     },
     "job_to_be_done": {
         "task": job
-    }
+    },
+        "selected_text": selected_text
     }
     # Save to input.json
     with open(INPUT_FILE, "w") as f:

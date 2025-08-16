@@ -55,9 +55,9 @@
         }
     ],
     "persona": {
-        "role": "you are chef"
+        "role": "chef"
     },
     "job_to_be_done": {
-        "task": "make lunch for 4 people fancy fancy"
+        "task": "make dinner for fancy guests"
     }
 }
