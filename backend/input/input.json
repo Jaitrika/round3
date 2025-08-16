@@ -55,9 +55,10 @@
         }
     ],
     "persona": {
-        "role": "chef"
+        "role": "private chef"
     },
     "job_to_be_done": {
         "task": "make dinner for fancy guests"
-    }
+    },
+    "selected_text": ""
 }

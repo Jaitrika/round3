@@ -568,17 +568,33 @@ def core():
         })
 
     # ---- STEP 6: Save Output ----
-    # Setup output path relative to backend directory
+    # Backend directory (where this script is)
     backend_dir = os.path.dirname(os.path.dirname(__file__))
-    output_dir = os.path.join(backend_dir, "output")
-    output_file = os.path.join(output_dir, "output.json")
+
+    # Project root (one level up from backend)
+    project_root = os.path.dirname(backend_dir)
+
+    # Frontend directory (sibling of backend)
+    frontend_dir = os.path.join(project_root, "frontend")
+
+    # Output inside frontend/src/output
+    output_dir_frontend = os.path.join(frontend_dir, "src", "output")
+
+    # Output inside backend/output
+    output_dir_backend = os.path.join(backend_dir, "output")
+
+    # Specific file paths
+    output_file_backend = os.path.join(output_dir_backend, "output.json")
+    output_file_frontend = os.path.join(output_dir_frontend, "output.json")
+
+    # Ensure directories exist
+    os.makedirs(output_dir_backend, exist_ok=True)
+    os.makedirs(output_dir_frontend, exist_ok=True)
     
-    # Create output directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
-    
-    print(f"Saving output to: {output_file}")
-    with open(output_file, "w", encoding="utf-8") as f:
+    print(f"Saving output to: {output_file_backend} and {output_file_frontend}")
+    with open(output_file_backend, "w", encoding="utf-8") as f:
+        json.dump(output, f, indent=4, ensure_ascii=False)
+    with open(output_file_frontend, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=4, ensure_ascii=False)
 
     print(" Output saved successfully")
-
