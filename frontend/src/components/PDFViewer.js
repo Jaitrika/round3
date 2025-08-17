@@ -323,7 +323,8 @@ import React, { useEffect, useRef, useState } from "react";
 function PDFViewer({ fileUrl, clientId, jumpCommand }) {
   const containerRef = useRef(null);
   const [adobeViewer, setAdobeViewer] = useState(null);
-  const [selectedText, setSelectedText] = useState(""); // State to store selected text
+  const [apis, setApis] = useState(null);
+  const [selectedText, setSelectedText] = useState("");
 
   const viewerConfig = {
     embedMode: "SIZED_CONTAINER",
@@ -347,7 +348,6 @@ function PDFViewer({ fileUrl, clientId, jumpCommand }) {
         return;
       }
 
-      // Check if the PDF file exists
       try {
         const response = await fetch(fileUrl, { method: "HEAD" });
         if (!response.ok) {
@@ -359,15 +359,12 @@ function PDFViewer({ fileUrl, clientId, jumpCommand }) {
         return;
       }
 
-      // Clear any previous viewer content
       if (containerRef.current) {
         containerRef.current.innerHTML = "";
       }
 
-      // Small delay to ensure DOM readiness
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Initialize Adobe DC View instance
       const adobeDCView = new window.AdobeDC.View({
         clientId: clientId,
         divId: "adobe-dc-viewer",
@@ -377,7 +374,6 @@ function PDFViewer({ fileUrl, clientId, jumpCommand }) {
       console.log("Loading PDF from URL:", fileUrl);
 
       try {
-        // Preview the PDF file
         const viewer = await adobeDCView.previewFile(
           {
             content: { location: { url: fileUrl } },
@@ -388,26 +384,15 @@ function PDFViewer({ fileUrl, clientId, jumpCommand }) {
 
         setAdobeViewer(viewer);
 
-        // api calls
         const apis = await viewer.getAPIs();
         await apis.enableTextSelection(true);
+        setApis(apis);
 
-        // adding event listener
-        apis.addEventListener("TEXT_SELECTED", (event) => {
-          if (event && event.data && event.data.text) {
-            setSelectedText(event.data.text);
-          }
-        });
-
-        // Handle any pending jump command
+        // handle jump command if provided
         if (jumpCommand) {
           try {
             console.log("Jumping to page", jumpCommand.page);
-
-            // Wait for the document to be ready
             await new Promise((resolve) => setTimeout(resolve, 500));
-
-            // Jump to page (0-based indexing)
             await apis.gotoLocation(jumpCommand.page - 1);
 
             if (jumpCommand.text) {
@@ -423,7 +408,6 @@ function PDFViewer({ fileUrl, clientId, jumpCommand }) {
       }
     };
 
-    // Load the Adobe DC View script if needed
     if (window.AdobeDC) {
       initViewer();
     } else {
@@ -483,6 +467,22 @@ function PDFViewer({ fileUrl, clientId, jumpCommand }) {
     handleJump();
   }, [jumpCommand, adobeViewer]);
 
+  // Function to fetch current selection
+  const fetchSelected = async () => {
+    if (!apis) return;
+    try {
+      const result = await apis.getSelectedContent();
+      if (result && result.data) {
+        setSelectedText(result.data);
+      } else {
+        setSelectedText("");
+      }
+    } catch (err) {
+      console.error("Error getting selected content:", err);
+      setSelectedText("");
+    }
+  };
+
   return (
     <div style={{ marginTop: 12 }}>
       <div
@@ -490,6 +490,20 @@ function PDFViewer({ fileUrl, clientId, jumpCommand }) {
         ref={containerRef}
         style={{ height: "720px", width: "100%" }}
       />
+      <button
+        onClick={fetchSelected}
+        style={{
+          marginTop: 12,
+          padding: "8px 12px",
+          background: "#0070f3",
+          color: "white",
+          border: "none",
+          borderRadius: 4,
+          cursor: "pointer",
+        }}
+      >
+        Get Selected Text
+      </button>
       <div
         style={{
           marginTop: 16,
@@ -510,6 +524,7 @@ function PDFViewer({ fileUrl, clientId, jumpCommand }) {
 }
 
 export default PDFViewer;
+
 
 // import React, { useEffect, useRef } from "react";
 // // import { PDFViewer as AdobePDFViewer } from "@adobe/react-pdf-viewer"; // Example library
