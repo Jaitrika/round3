@@ -417,6 +417,38 @@ function PDFViewer({ fileUrl, clientId, jumpCommand }) {
       document.body.appendChild(script);
     }
   }, [fileUrl, clientId]);
+  // Inside PDFViewer.js
+useEffect(() => {
+  if (!apis) return;
+
+  const interval = setInterval(async () => {
+    try {
+      const result = await apis.getSelectedContent();
+      if (result && result.data && result.data !== selectedText) {
+        setSelectedText(result.data);
+
+        // 🚀 Send directly to backend
+        fetch("http://127.0.0.1:8000/save-input", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            persona: "default_persona",
+            job: "default_job",
+            selected_text: result.data,
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => console.log("Saved to backend:", data))
+          .catch((err) => console.error("Error saving selected text:", err));
+      }
+    } catch (err) {
+      console.error("Error polling selection:", err);
+    }
+  }, 1000); // check every 1 second
+
+  return () => clearInterval(interval);
+}, [apis, selectedText]);
+
 
   // Handle jump commands after initial load
   useEffect(() => {
