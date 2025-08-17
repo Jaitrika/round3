@@ -135,7 +135,6 @@ import React, { useState } from "react";
 import FileUploader from "./components/FileUploader";
 import FileList from "./components/FileList";
 import PDFViewer from "./components/PDFViewer";
-import PersonaJobForm from "./components/PersonaJobForm";
 import analysis from "./output/output.json";
 
 function App() {
@@ -146,8 +145,6 @@ function App() {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 12 }}>
       <div>
-        <PersonaJobForm />
-        <hr style={{ margin: "12px 0" }} />
 
         <FileUploader onUploadComplete={(url) => {
           setSelectedUrl(url);

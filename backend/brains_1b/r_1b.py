@@ -399,9 +399,8 @@ def core():
     with open(input_file, "r", encoding="utf-8") as f:
         input_data = json.load(f)
         documents_info = input_data["documents"]
-        persona_description = input_data["persona"]["role"]
-        job_to_be_done = input_data["job_to_be_done"]["task"]
-        query = persona_description + " " + job_to_be_done
+        selected_text = input_data["selected_text"]
+        query = selected_text
 
     # Setup paths relative to backend directory
     backend_dir = os.path.dirname(os.path.dirname(__file__))
@@ -544,8 +543,6 @@ def core():
     output = {
         "metadata": {
             "input_documents": pdf_files,
-            "persona": persona_description,
-            "job_to_be_done": job_to_be_done,
             "processing_timestamp": datetime.now().isoformat()
 
         },

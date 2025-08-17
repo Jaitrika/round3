@@ -7,10 +7,12 @@ from pathlib import Path
 from typing import List
 from urllib.parse import quote
 import os
+from pydantic import BaseModel
 # from backend.brains_1b import custom_parser
 from .brains_1b import r_1b
 # from dotenv import load_dotenv
 import json
+from .brains_1b import bulb
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -71,6 +73,15 @@ async def list_files():
     ]
     return {"files": file_objs}
 
+class InsightsRequest(BaseModel):
+    text: str
+
+@app.post("/insights")
+async def get_insights(req: InsightsRequest):
+    messages = [{"role": "user", "content": req.text}]
+    response = bulb.get_llm_response(messages)
+    return {"insight": response}
+
 # Use input folder inside backend directory
 INPUT_FILE = Path(__file__).parent / "input" / "input.json"
 # Create input directory if it doesn't exist
@@ -92,11 +103,6 @@ async def save_input(request: Request):
     # Create JSON structure
     input_data = {
         
-        "challenge_info": {
-            "challenge_id": "round_1b_001",
-            "test_case_name": "menu_planning",
-            "description": "Dinner menu planning"
-        },
         "documents": [
             {
                 "filename": f,
@@ -104,12 +110,7 @@ async def save_input(request: Request):
             }
             for f in files
         ],
-        "persona": {
-        "role": persona
-    },
-    "job_to_be_done": {
-        "task": job
-    },
+        
         "selected_text": selected_text
     }
     # Save to input.json

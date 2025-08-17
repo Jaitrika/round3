@@ -2,6 +2,8 @@ import os
 #from langchain_openai import ChatOpenAI, AzureChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 #from langchain_community.chat_models import ChatOllama
+from dotenv import load_dotenv
+import os
 
 # Python libraries to be installed: langchain, langchain-openai, langchain-google-genai, langchain-community
 
@@ -52,6 +54,8 @@ Usage:
     response = get_llm_response(messages)
 """
 
+load_dotenv()
+
 def get_llm_response(messages):
     provider = os.getenv("LLM_PROVIDER", "gemini").lower()
 
@@ -62,7 +66,6 @@ def get_llm_response(messages):
         credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         
         model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-
         if not api_key and not credentials_path:
             raise ValueError("Either GOOGLE_API_KEY or GOOGLE_APPLICATION_CREDENTIALS must be set.")
 

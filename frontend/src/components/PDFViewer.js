@@ -319,12 +319,14 @@
 
 // export default PDFViewer;
 import React, { useEffect, useRef, useState } from "react";
+import { fetchInsights } from "./useInsights";
 
 function PDFViewer({ fileUrl, clientId, jumpCommand }) {
   const containerRef = useRef(null);
   const [adobeViewer, setAdobeViewer] = useState(null);
   const [apis, setApis] = useState(null);
   const [selectedText, setSelectedText] = useState("");
+  const [insight, setInsight] = useState("");
 
   const viewerConfig = {
     embedMode: "SIZED_CONTAINER",
@@ -499,21 +501,11 @@ useEffect(() => {
     handleJump();
   }, [jumpCommand, adobeViewer]);
 
-  // Function to fetch current selection
-  const fetchSelected = async () => {
-    if (!apis) return;
-    try {
-      const result = await apis.getSelectedContent();
-      if (result && result.data) {
-        setSelectedText(result.data);
-      } else {
-        setSelectedText("");
-      }
-    } catch (err) {
-      console.error("Error getting selected content:", err);
-      setSelectedText("");
-    }
+  const handleInsights = async () => {
+    const result = await fetchInsights(selectedText);
+    setInsight(result);
   };
+  
 
   return (
     <div style={{ marginTop: 12 }}>
@@ -522,7 +514,11 @@ useEffect(() => {
         ref={containerRef}
         style={{ height: "720px", width: "100%" }}
       />
-      
+      <div>
+      <div ref={containerRef} style={{ height: "600px", width: "100%" }} />
+      <button onClick={handleInsights}>Insights</button>
+      {insight && <div className="mt-4 p-2 border">{insight}</div>}
+    </div>
       <div
         style={{
           marginTop: 16,
@@ -539,6 +535,7 @@ useEffect(() => {
         </p>
       </div>
     </div>
+      
   );
 }
 

@@ -1,9 +1,4 @@
 {
-    "challenge_info": {
-        "challenge_id": "round_1b_001",
-        "test_case_name": "menu_planning",
-        "description": "Dinner menu planning"
-    },
     "documents": [
         {
             "filename": "Breakfast Ideas.pdf",
@@ -54,11 +49,5 @@
             "title": "South of France - Traditions and Culture"
         }
     ],
-    "persona": {
-        "role": "private chef"
-    },
-    "job_to_be_done": {
-        "task": "make dinner for fancy guests"
-    },
-    "selected_text": ""
+    "selected_text": "Roast Chicken "
 }
