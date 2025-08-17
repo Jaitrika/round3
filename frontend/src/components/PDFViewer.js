@@ -522,20 +522,7 @@ useEffect(() => {
         ref={containerRef}
         style={{ height: "720px", width: "100%" }}
       />
-      <button
-        onClick={fetchSelected}
-        style={{
-          marginTop: 12,
-          padding: "8px 12px",
-          background: "#0070f3",
-          color: "white",
-          border: "none",
-          borderRadius: 4,
-          cursor: "pointer",
-        }}
-      >
-        Get Selected Text
-      </button>
+      
       <div
         style={{
           marginTop: 16,
