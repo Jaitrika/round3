@@ -57,6 +57,7 @@ Usage:
 load_dotenv()
 
 def get_llm_response(messages):
+    print(messages[0]["content"])
     provider = os.getenv("LLM_PROVIDER", "gemini").lower()
 
     # Use messages in current format directly

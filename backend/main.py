@@ -13,6 +13,7 @@ from .brains_1b import r_1b
 # from dotenv import load_dotenv
 import json
 from .brains_1b import bulb
+from sentence_transformers import SentenceTransformer
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -76,9 +77,40 @@ async def list_files():
 class InsightsRequest(BaseModel):
     text: str
 
-@app.post("/insights")
+# @app.post("/insights")
+# async def get_insights(req: InsightsRequest):
+#     messages = [{"role": "user", "content": req.text}]
+#     response = bulb.get_llm_response(messages)
+#     return {"insight": response}
+
+@app.post("/insights") 
 async def get_insights(req: InsightsRequest):
-    messages = [{"role": "user", "content": req.text}]
+    # Get everything we need in one call
+    evidence_for_gemini, selected_text, evidence_nuggets = r_1b.get_evidence_for_insights()
+    
+    # Create prompt and get response
+    gemini_prompt = f"""You are an AI assistant helping users discover connections and insights from their uploaded documents.
+
+    Selected text: "{selected_text}"
+
+    Related content from your documents:
+    {evidence_for_gemini}
+
+    Based on the selected text and related content, provide helpful insights such as:
+    - Similar or contrasting information found in other documents
+    - Additional details, examples, or context that enhance understanding
+    - Interesting connections or patterns across documents
+    - Related facts or information that might be useful
+    - Questions or topics this might lead you to explore further
+
+    Keep your insights:
+    - Based only on the provided documents (cite document names when relevant)
+    - Practical and easy to understand
+    - Focused on what adds value to your understanding of the selected text
+
+    Provide specific, actionable insights rather than generic observations."""
+
+    messages = [{"role": "user", "content": gemini_prompt}]
     response = bulb.get_llm_response(messages)
     return {"insight": response}
 

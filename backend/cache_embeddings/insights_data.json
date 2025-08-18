@@ -1,0 +1,36 @@
+{
+    "reranked_sections": [
+        {
+            "score": 4.636561870574951,
+            "text": "Ingredients:  4 boneless, skinless chicken breasts  1 cup breadcrumbs  1/2 cup grated Parmesan cheese  1 cup marinara sauce  1 cup mozzarella cheese, shredded  2 eggs, beaten  1/2 cup flour  1/4 cup olive oil  Salt and pepper to taste Instructions:  Preheat oven to 375°F (190°C).  Season chicken breasts with salt and pepper.  Dredge chicken in flour, dip in beaten eggs, and coat with a mixture of breadcrumbs and grated Parmesan cheese.  Heat olive oil in a skillet over medium heat.  Cook chicken until golden brown on both sides.  Place chicken in a baking dish, top with marinara sauce and shredded mozzarella cheese.  Bake for 20-25 minutes until cheese is melted and bubbly.  Serve warm.",
+            "document": "Dinner Ideas - Mains_1.pdf",
+            "page_number": 1
+        },
+        {
+            "score": 4.536290168762207,
+            "text": "Ingredients:  4 boneless, skinless chicken breasts  1 pound fettuccine  1 cup heavy cream  1/2 cup grated Parmesan cheese  1/4 cup butter  2 cloves garlic, minced  Salt and pepper to taste  Chopped parsley for garnish Instructions:  Cook fettuccine according to package instructions.  In a skillet, melt butter over medium heat.  Add minced garlic and sauté until fragrant.  Add chicken breasts and cook until golden and cooked through.  Remove chicken from the skillet and set aside.  Pour heavy cream into the skillet and bring to a simmer.  Stir in grated Parmesan cheese until melted and smooth.  Season with salt and pepper.  Slice chicken and return to the skillet.  Toss cooked fettuccine with the sauce and chicken.  Garnish with chopped parsley and serve.",
+            "document": "Dinner Ideas - Mains_1.pdf",
+            "page_number": 4
+        },
+        {
+            "score": 1.8730909824371338,
+            "text": "Ingredients:  1 cup Arborio rice  4 cups chicken or vegetable broth  1 small onion, diced  2 cloves garlic, minced  1 cup mushrooms, sliced  1/2 cup white wine  1/2 cup grated Parmesan cheese  2 tablespoons butter  2 tablespoons olive oil  Salt and pepper to taste  Chopped parsley for garnish Instructions:  Heat broth in a pot and keep warm.  In a large skillet, heat olive oil and 1 tablespoon butter over medium heat.  Sauté onion, garlic, and mushrooms until tender.  Add rice and stir for 1-2 minutes until lightly toasted.  Pour in white wine and cook until absorbed.  Add warm broth, one ladle at a time, stirring until absorbed before adding more, until rice is creamy and tender (about 20 minutes).  Stir in remaining butter and Parmesan cheese, season with salt and pepper.  Garnish with parsley and serve.",
+            "document": "Dinner Ideas - Mains_3.pdf",
+            "page_number": 6
+        },
+        {
+            "score": -1.8360146284103394,
+            "text": "Ingredients:  1 pound fettuccine  1 cup heavy cream  1/2 cup grated Parmesan cheese  1/4 cup butter  2 cloves garlic, minced  Salt and pepper to taste  Chopped parsley for garnish Instructions:  Cook fettuccine according to package instructions.  In a skillet, melt butter over medium heat.  Add minced garlic and sauté until fragrant.  Pour in heavy cream and bring to a simmer.  Stir in grated Parmesan cheese until melted and smooth.  Season with salt and pepper.  Toss cooked fettuccine with the sauce.  Garnish with chopped parsley and serve.",
+            "document": "Dinner Ideas - Mains_2.pdf",
+            "page_number": 10
+        },
+        {
+            "score": -2.026745319366455,
+            "text": "Ingredients:  1 pound spaghetti  4 eggs  1 cup grated Parmesan cheese  1/2 cup pancetta, diced  2 cloves garlic, minced  1/4 cup heavy cream (optional)  Salt and pepper to taste  Chopped parsley for garnish Instructions:  Cook spaghetti according to package instructions.  In a skillet, cook diced pancetta until crispy, then set aside.  In a bowl, whisk eggs, grated Parmesan cheese, and heavy cream (if using).  In the same skillet, sauté minced garlic until fragrant.  Add cooked spaghetti and toss to coat.  Remove from heat and quickly stir in the egg mixture, pancetta, salt, and pepper.  Garnish with chopped parsley and serve.",
+            "document": "Dinner Ideas - Mains_2.pdf",
+            "page_number": 1
+        }
+    ],
+    "selected_text": "Chicken Parmesan ",
+    "timestamp": "2025-08-18T18:23:27.562803"
+}

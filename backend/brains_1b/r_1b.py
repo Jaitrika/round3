@@ -10,7 +10,7 @@ from . import custom_parser
 import re
 import pickle
 import hashlib
-
+import spacy
 # def get_file_hash(file_path):
 #     """Create a hash for file contents so cache updates if file changes."""
 #     hasher = hashlib.md5()
@@ -381,6 +381,111 @@ def parse_generic_query(query):
 
 #     print(f"After filtering: {len(top_sections)} sections remain out of {len(top_sections_raw)}")
 
+# Add this after your reranking, before the output generation
+
+# Load once at startup (fast after first load)
+nlp = spacy.load("en_core_web_sm")
+
+def split_sentences(text: str):
+    """Split text into sentences using spaCy."""
+    doc = nlp(text)
+    return [sent.text.strip() for sent in doc.sents if sent.text.strip()]
+
+
+def compress_to_evidence_nuggets(reranked_sections, query_embedding, model):
+    evidence_nuggets = []
+    
+    for sec in reranked_sections:
+        # Split into sentences
+        sentences = split_sentences(sec["text"])
+        
+        if len(sentences) <= 3:
+            # Keep short sections as-is
+            evidence_nuggets.append({
+                "text": sec["text"],
+                "doc_id": sec["document"],
+                "page": sec["page_number"],
+                "confidence": sec["score"]
+            })
+        else:
+            # Score each sentence
+            sentence_embeddings = model.encode(sentences, convert_to_tensor=True)
+            sentence_scores = util.cos_sim(query_embedding, sentence_embeddings)[0]
+            
+            # Keep top 2-3 sentences
+            top_sentence_indices = torch.topk(sentence_scores, k=min(3, len(sentences))).indices.tolist()
+            selected_sentences = [sentences[i] for i in sorted(top_sentence_indices)]
+            
+            evidence_nuggets.append({
+                "text": " ".join(selected_sentences),
+                "doc_id": sec["document"],
+                "page": sec["page_number"],
+                "confidence": sec["score"]
+            })
+    
+    return evidence_nuggets
+
+def simple_dedup(nuggets, model, threshold=0.85):
+    if len(nuggets) <= 1:
+        return nuggets
+        
+    texts = [n["text"] for n in nuggets]
+    embeddings = model.encode(texts, convert_to_tensor=True)
+    
+    keep = []
+    for i, nugget in enumerate(nuggets):
+        is_duplicate = False
+        for j in range(len(keep)):
+            similarity = util.cos_sim(embeddings[i], embeddings[keep[j]["original_idx"]])[0][0]
+            if similarity > threshold:
+                is_duplicate = True
+                break
+        
+        if not is_duplicate:
+            nugget["original_idx"] = i
+            keep.append(nugget)
+    
+    return keep
+
+def get_evidence_for_insights(max_tokens=2000):
+    """
+    Load cached insights data and convert to compressed evidence nuggets for LLM insights
+    Returns a concise, grounded evidence set with selected text
+    """
+    import os
+    import json
+    from sentence_transformers import SentenceTransformer
+    
+    # Load the already-generated insights data
+    backend_dir = os.path.dirname(os.path.dirname(__file__))  # Go up from r_1b.py location
+    cache_dir = os.path.join(backend_dir, "cache_embeddings") 
+    insights_cache_file = os.path.join(cache_dir, "insights_data.json")
+    
+    with open(insights_cache_file, "r", encoding="utf-8") as f:
+        insights_data = json.load(f)
+    
+    # Reconstruct what we need
+    reranked_sections = insights_data["reranked_sections"]
+    selected_text = insights_data["selected_text"]
+    
+    # Load model and create query embedding (fast since model loads from cache)
+    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    query_embedding = model.encode(selected_text, convert_to_tensor=True)
+    
+    # Generate evidence nuggets
+    evidence_nuggets = compress_to_evidence_nuggets(reranked_sections, query_embedding, model)
+    deduped_nuggets = simple_dedup(evidence_nuggets, model)
+    
+    # Format for Gemini prompt
+    evidence_text = ""
+    for i, nugget in enumerate(deduped_nuggets[:10]):  # Limit to top 10
+        evidence_text += f"[Doc: {nugget['doc_id']}, Page: {nugget['page']}]\n{nugget['text']}\n\n"
+    
+    # Token estimation and truncation if needed
+    if len(evidence_text) > max_tokens * 4:  # Rough token estimation
+        evidence_text = evidence_text[:max_tokens * 4] + "..."
+    
+    return evidence_text, selected_text, deduped_nuggets
 def md5_of_file(filepath):
     """Compute MD5 hash of a file to detect changes."""
     hash_md5 = hashlib.md5()
@@ -403,7 +508,28 @@ def core():
         query = selected_text
 
     # Setup paths relative to backend directory
+    # Backend directory (where this script is)
     backend_dir = os.path.dirname(os.path.dirname(__file__))
+
+    # Project root (one level up from backend)
+    project_root = os.path.dirname(backend_dir)
+
+    # Frontend directory (sibling of backend)
+    frontend_dir = os.path.join(project_root, "frontend")
+
+    # Output inside frontend/src/output
+    output_dir_frontend = os.path.join(frontend_dir, "src", "output")
+
+    # Output inside backend/output
+    output_dir_backend = os.path.join(backend_dir, "output")
+
+    # Specific file paths
+    output_file_backend = os.path.join(output_dir_backend, "output.json")
+    output_file_frontend = os.path.join(output_dir_frontend, "output.json")
+
+    # Ensure directories exist
+    os.makedirs(output_dir_backend, exist_ok=True)
+    os.makedirs(output_dir_frontend, exist_ok=True)
     pdf_folder = os.path.join(backend_dir, "documents")
     os.makedirs(pdf_folder, exist_ok=True)
     
@@ -429,9 +555,15 @@ def core():
             print(f"Warning: Could not process {file}: {str(e)}")
             continue
 
-    cache_dir = "cache_embeddings"
+    # cache_dir = "cache_embeddings"
+    # os.makedirs(cache_dir, exist_ok=True)
+    # cache_file = os.path.join(cache_dir, "embeddings.pkl")
+    cache_dir = os.path.join(backend_dir, "cache_embeddings")
     os.makedirs(cache_dir, exist_ok=True)
+
     cache_file = os.path.join(cache_dir, "embeddings.pkl")
+    insights_cache_file = os.path.join(cache_dir, "insights_data.json")
+
 
     use_cache = False
     if os.path.exists(cache_file):
@@ -565,33 +697,31 @@ def core():
         })
 
     # ---- STEP 6: Save Output ----
-    # Backend directory (where this script is)
-    backend_dir = os.path.dirname(os.path.dirname(__file__))
-
-    # Project root (one level up from backend)
-    project_root = os.path.dirname(backend_dir)
-
-    # Frontend directory (sibling of backend)
-    frontend_dir = os.path.join(project_root, "frontend")
-
-    # Output inside frontend/src/output
-    output_dir_frontend = os.path.join(frontend_dir, "src", "output")
-
-    # Output inside backend/output
-    output_dir_backend = os.path.join(backend_dir, "output")
-
-    # Specific file paths
-    output_file_backend = os.path.join(output_dir_backend, "output.json")
-    output_file_frontend = os.path.join(output_dir_frontend, "output.json")
-
-    # Ensure directories exist
-    os.makedirs(output_dir_backend, exist_ok=True)
-    os.makedirs(output_dir_frontend, exist_ok=True)
     
     print(f"Saving output to: {output_file_backend} and {output_file_frontend}")
     with open(output_file_backend, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=4, ensure_ascii=False)
     with open(output_file_frontend, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=4, ensure_ascii=False)
+    
+    # NEW: Always cache the insights data alongside the regular output
+    insights_data = {
+        "reranked_sections": [
+            {
+                "score": sec["score"],
+                "text": sec["text"], 
+                "document": sec["document"],
+                "page_number": sec["page_number"]
+            } for sec in reranked_sections[:top_k]
+        ],
+        "selected_text": selected_text,
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    # Save insights cache alongside regular cache
+    cache_dir = os.path.join(backend_dir, "cache_embeddings") 
+    insights_cache_file = os.path.join(cache_dir, "insights_data.json")
+    with open(insights_cache_file, "w", encoding="utf-8") as f:
+        json.dump(insights_data, f, indent=4, ensure_ascii=False)
 
     print(" Output saved successfully")
