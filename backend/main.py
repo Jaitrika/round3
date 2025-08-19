@@ -120,8 +120,73 @@ async def cleanup_on_exit():
             deleted.append(str(CACHE_DIR))
         except Exception as e:
             print(f"Failed to delete folder {CACHE_DIR}: {e}")
-    print("delllll", deleted)
+
+    # 3. Delete input.json and output.json
+    input_file = ROOT_DIR / "input" / "input.json"
+    output_file = ROOT_DIR / "output" / "output.json"
+
+    for file in [input_file, output_file]:
+        if file.exists():
+            try:
+                os.remove(file)
+                deleted.append(str(file))
+            except Exception as e:
+                print(f"Failed to delete {file}: {e}")
+
+    # 4. Delete output.json in frontend/src/output
+    frontend_dir = ROOT_DIR / "../frontend"
+    output_dir_frontend = frontend_dir / "src" / "output" / "output.json"
+
+    if output_dir_frontend.exists():
+        try:
+            os.remove(output_dir_frontend)
+            deleted.append(str(output_dir_frontend))
+        except Exception as e:
+            print(f"Failed to delete {output_dir_frontend}: {e}")
+
+    print("Deleted files:", deleted)
     return {"deleted": deleted}
+# OUTPUT_DIR = ROOT_DIR / "output"
+# INPUT_DIR = ROOT_DIR / "input"
+# @app.post("/cleanup-on-exit")
+# async def cleanup_on_exit():
+#     deleted = []
+#     # 1. Delete all files inside UPLOAD_DIR (documents/)
+#     if UPLOAD_DIR.exists():
+#         for file in UPLOAD_DIR.glob("*"):  # matches everything inside documents/
+#             if file.is_file():  # only remove files, not subfolders
+#                 try:
+#                     os.remove(file)
+#                     deleted.append(str(file))
+#                 except Exception as e:
+#                     print(f"Failed to delete {file}: {e}")
+#     if OUTPUT_DIR.exists():
+#         for file in UPLOAD_DIR.glob("*"):  # matches everything inside documents/
+#             if file.is_file():  # only remove files, not subfolders
+#                 try:
+#                     os.remove(file)
+#                     deleted.append(str(file))
+#                 except Exception as e:
+#                     print(f"Failed to delete {file}: {e}")
+#     if INPUT_DIR.exists():
+#         for file in UPLOAD_DIR.glob("*"):  # matches everything inside documents/
+#             if file.is_file():  # only remove files, not subfolders
+#                 try:
+#                     os.remove(file)
+#                     deleted.append(str(file))
+#                 except Exception as e:
+#                     print(f"Failed to delete {file}: {e}")
+    
+#     # 2. Delete all .mp3 files in ROOT_DIR
+#     if CACHE_DIR.exists() and CACHE_DIR.is_dir():
+#         try:
+#             shutil.rmtree(CACHE_DIR)
+#             deleted.append(str(CACHE_DIR))
+#         except Exception as e:
+#             print(f"Failed to delete folder {CACHE_DIR}: {e}")
+#     print("delllll", deleted)
+
+#     return {"deleted": deleted}
 
 @app.post("/insights") 
 async def get_insights(req: InsightsRequest):
