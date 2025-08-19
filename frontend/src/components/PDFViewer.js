@@ -649,7 +649,16 @@ function PDFViewer({ fileUrl, clientId, jumpCommand }) {
         if (result && result.data && result.data !== selectedText) {
           setSelectedText(result.data);
           // 🚀 Send directly to backend
-          fetch("http://127.0.0.1:8000/save-input", {
+          // fetch("http://127.0.0.1:8000/save-input", {
+          //   method: "POST",
+          //   headers: { "Content-Type": "application/json" },
+          //   body: JSON.stringify({
+          //     persona: "default_persona",
+          //     job: "default_job",
+          //     selected_text: result.data,
+          //   }),
+          // })
+          fetch("/save-input", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

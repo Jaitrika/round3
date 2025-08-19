@@ -77,10 +77,15 @@ function FileUploader({ onUploadComplete }) {
     files.forEach((f) => formData.append("files", f));
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/upload/", {
-        method: "POST",
-        body: formData,
+      // const res = await fetch("http://127.0.0.1:8000/upload/", {
+      //   method: "POST",
+      //   body: formData,
+      // });
+      const res = await fetch("/upload/", {
+      method: "POST",
+      body: formData,
       });
+
       const data = await res.json();
       setUploadResult(data);
       if (data.saved_files && data.saved_files.length > 0 && onUploadComplete) {

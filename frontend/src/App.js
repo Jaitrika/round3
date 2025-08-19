@@ -169,9 +169,17 @@ function App() {
                     key={idx}
                     className="section-btn"
                     onClick={() => {
-                      // Ensure clean path without any double slashes
-                      const cleanDocName = sectionData.document.replace(/^\/+|\/+$/g, '');
-                      const documentUrl = `http://127.0.0.1:8000/files/${cleanDocName}`;
+                      // // Ensure clean path without any double slashes
+                      // const cleanDocName = sectionData.document.replace(/^\/+|\/+$/g, '');
+                      // const documentUrl = `http://127.0.0.1:8000/files/${cleanDocName}`;
+                      // console.log("Setting URL:", documentUrl);
+                      // setSelectedUrl(documentUrl);
+                      // Here sectionData.document should already be a full URL if you return it that way from backend
+                      //Build full URL if backend only returned filename
+                      const documentUrl = sectionData.document.startsWith("http")
+                        ? sectionData.document
+                        : `${window.location.origin}/files/${sectionData.document}`;
+
                       console.log("Setting URL:", documentUrl);
                       setSelectedUrl(documentUrl);
                       

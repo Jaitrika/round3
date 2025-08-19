@@ -15,6 +15,7 @@ import json
 from .brains_1b import bulb
 from sentence_transformers import SentenceTransformer
 app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # In dev: allow all origin
@@ -22,6 +23,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve frontend build
+frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend", "build")
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+
+# Example API endpoint
+@app.get("/api/hello")
+def hello():
+    return {"message": "Hello from backend!"}
 
 ADOBE_CLIENT_ID = os.getenv("ADOBE_CLIENT_ID")
 
@@ -39,7 +50,7 @@ app.mount("/files", StaticFiles(directory=UPLOAD_DIR), name="files")
 
 
 @app.post("/upload/")
-async def upload(files: List[UploadFile] = File(...)):
+async def upload(request: Request, files: List[UploadFile] = File(...)):
     saved_files = []
     skipped_files = []
 
@@ -53,8 +64,12 @@ async def upload(files: List[UploadFile] = File(...)):
             saved_files.append(file.filename)
 
     # return full URL-encoded URLs for saved files
+    base_url = str(request.base_url)  # e.g. "http://localhost:8080/"
+    # saved_file_urls = [
+    #     f"http://127.0.0.1:8000/files/{quote(name)}" for name in saved_files
+    # ]
     saved_file_urls = [
-        f"http://127.0.0.1:8000/files/{quote(name)}" for name in saved_files
+        f"{base_url}files/{quote(name)}" for name in saved_files
     ]
 
     return JSONResponse(
@@ -65,11 +80,21 @@ async def upload(files: List[UploadFile] = File(...)):
         }
     )
 
+# @app.get("/list-files/")
+# async def list_files():
+#     files = sorted([p.name for p in UPLOAD_DIR.iterdir() if p.is_file()])
+#     file_objs = [
+#         {"name": name, "url": f"http://127.0.0.1:8000/files/{quote(name)}"}
+#         for name in files
+#     ]
+#     return {"files": file_objs}
 @app.get("/list-files/")
-async def list_files():
+async def list_files(request: Request):
     files = sorted([p.name for p in UPLOAD_DIR.iterdir() if p.is_file()])
+    base_url = str(request.base_url)  # adapts automatically to 127.0.0.1:8000, localhost:8080, etc.
+    
     file_objs = [
-        {"name": name, "url": f"http://127.0.0.1:8000/files/{quote(name)}"}
+        {"name": name, "url": f"{base_url}files/{quote(name)}"}
         for name in files
     ]
     return {"files": file_objs}
