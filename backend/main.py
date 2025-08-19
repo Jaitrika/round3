@@ -1,19 +1,19 @@
-# backend/main.py
-from fastapi import FastAPI, File, UploadFile, Request
+from fastapi import FastAPI, File, UploadFile, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, FileResponse
 from pathlib import Path
 from typing import List
 from urllib.parse import quote
-import os
+import os, glob
 from pydantic import BaseModel
-# from backend.brains_1b import custom_parser
-from .brains_1b import r_1b
-# from dotenv import load_dotenv
-import json
-from .brains_1b import bulb
+from brains_1b import custom_parser
+from brains_1b import r_1b, bulb
+from tts_generator import generate_conversation_tts
 from sentence_transformers import SentenceTransformer
+import json
+import shutil
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -25,18 +25,11 @@ app.add_middleware(
 
 ADOBE_CLIENT_ID = os.getenv("ADOBE_CLIENT_ID")
 
-# @app.get("/adobe-client-id")
-# def get_adobe_client_id():
-#     return {"clientId": ADOBE_CLIENT_ID}
-
-
-# Use documents folder inside backend directory
 UPLOAD_DIR = Path(__file__).parent / "documents"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 # Serve static files from /files/<filename>
 app.mount("/files", StaticFiles(directory=UPLOAD_DIR), name="files")
-
 
 @app.post("/upload/")
 async def upload(files: List[UploadFile] = File(...)):
@@ -67,7 +60,7 @@ async def upload(files: List[UploadFile] = File(...)):
 
 @app.get("/list-files/")
 async def list_files():
-    files = sorted([p.name for p in UPLOAD_DIR.iterdir() if p.is_file()])
+    files = sorted([p.name for p in UPLOAD_DIR.iterdir() if p.is_file() and p.suffix.lower() == ".pdf"])
     file_objs = [
         {"name": name, "url": f"http://127.0.0.1:8000/files/{quote(name)}"}
         for name in files
@@ -77,11 +70,33 @@ async def list_files():
 class InsightsRequest(BaseModel):
     text: str
 
-# @app.post("/insights")
-# async def get_insights(req: InsightsRequest):
-#     messages = [{"role": "user", "content": req.text}]
-#     response = bulb.get_llm_response(messages)
-#     return {"insight": response}
+UPLOAD_DIR = Path(__file__).parent / "documents"
+# root dir (same as this script’s directory)
+ROOT_DIR = Path(__file__).parent
+CACHE_DIR = ROOT_DIR / "cache_embeddings"
+@app.post("/cleanup-on-exit")
+async def cleanup_on_exit():
+    deleted = []
+
+    # 1. Delete all files inside UPLOAD_DIR (documents/)
+    if UPLOAD_DIR.exists():
+        for file in UPLOAD_DIR.glob("*"):  # matches everything inside documents/
+            if file.is_file():  # only remove files, not subfolders
+                try:
+                    os.remove(file)
+                    deleted.append(str(file))
+                except Exception as e:
+                    print(f"Failed to delete {file}: {e}")
+
+    # 2. Delete all .mp3 files in ROOT_DIR
+    if CACHE_DIR.exists() and CACHE_DIR.is_dir():
+        try:
+            shutil.rmtree(CACHE_DIR)
+            deleted.append(str(CACHE_DIR))
+        except Exception as e:
+            print(f"Failed to delete folder {CACHE_DIR}: {e}")
+    print("delllll", deleted)
+    return {"deleted": deleted}
 
 @app.post("/insights") 
 async def get_insights(req: InsightsRequest):
@@ -114,10 +129,10 @@ async def get_insights(req: InsightsRequest):
     response = bulb.get_llm_response(messages)
     return {"insight": response}
 
-# Use input folder inside backend directory
+
 INPUT_FILE = Path(__file__).parent / "input" / "input.json"
-# Create input directory if it doesn't exist
 Path(INPUT_FILE).parent.mkdir(exist_ok=True)
+
 @app.post("/save-input")
 async def save_input(request: Request):
     # Parse JSON body directly
@@ -134,7 +149,6 @@ async def save_input(request: Request):
 
     # Create JSON structure
     input_data = {
-        
         "documents": [
             {
                 "filename": f,
@@ -142,7 +156,6 @@ async def save_input(request: Request):
             }
             for f in files
         ],
-        
         "selected_text": selected_text
     }
     # Save to input.json
@@ -154,3 +167,65 @@ async def save_input(request: Request):
     
     r_1b.core()
     return {"message": "Input data saved successfully!"}
+
+# @app.post("/generate-audio/")
+# async def generate_audio_endpoint(text: str = Form(...), voice: str = Form(None)):
+#     output_file = "output.mp3"
+#     try:
+#         conversation = [
+#     {"text": "Hello, welcome to our podcast!", "voice": "en+m1"},  # male voice
+#     {"text": "Hi! I'm excited to join today.", "voice": "en+f2"},  # female voice
+#     {"text": "Let's dive into the topic.", "voice": "en+m2"},
+# ]
+#         generate_conversation_tts(conversation, "testingpls.mp3")
+#         return FileResponse(output_file, media_type="audio/mpeg", filename="testingpls.mp3")
+#     except Exception as e:
+#         return {"error": str(e)}
+
+@app.post("/generate-podcast")
+async def generate_podcast(request: Request):
+    # Parse the selected text from the request
+    # data = await request.json()
+    # selected_text = data.get("selected_text", "")
+    evidence_for_gemini, selected_text, evidence_nuggets = r_1b.get_evidence_for_insights()
+    print("generatinggg")
+    # Create prompt for Gemini to generate podcast script
+    gemini_prompt = f"""You are an AI assistant helping users create a podcast script based on their selected text.
+
+    Selected text: "{selected_text}"
+    Related content {evidence_for_gemini}
+
+    Generate a podcast script with two speakers (Speaker 1 and Speaker 2) discussing the selected text. The podcast should be of less than 1 minutes. Alternate between the speakers and ensure the script is engaging and conversational. Use the following format:
+
+    Speaker 1: [Text]
+    Speaker 2: [Text]
+
+    Keep the script concise and focused on the selected text."""
+
+    messages = [{"role": "user", "content": gemini_prompt}]
+    script_response = bulb.get_llm_response(messages)
+
+    # Parse the script into a conversation format
+    conversation = []
+    voices = ["en+m1", "en+f2"]  # Male and female voices
+    conversation = []
+    speaker_index = 0
+    for line in script_response.splitlines():
+        if line.startswith("Speaker 1:") or line.startswith("Speaker 2:"):
+            text = line.split(":", 1)[1].strip()
+            conversation.append({
+                "text": text,
+                "voice": voices[speaker_index % len(voices)]
+            })
+            speaker_index += 1
+
+    print("done with script")
+    # Generate the podcast
+    podcast_file = UPLOAD_DIR / "podcast.mp3"
+    generate_conversation_tts(conversation, str(podcast_file))
+    print("done with recording")
+    return FileResponse(
+        podcast_file, 
+        media_type="audio/mpeg", 
+        filename="podcast.mp3"
+    )
