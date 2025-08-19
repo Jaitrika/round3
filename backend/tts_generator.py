@@ -16,27 +16,31 @@ fake_audioop = types.SimpleNamespace(
 sys.modules["pyaudioop"] = fake_audioop
 sys.modules["audioop"] = fake_audioop
 from pydub import AudioSegment
-AudioSegment.converter = "/opt/homebrew/bin/ffmpeg"
+
+# Set ffmpeg path for different environments
+import shutil
+
+ffmpeg_path = shutil.which("ffmpeg")
+if ffmpeg_path:
+    AudioSegment.converter = ffmpeg_path
+    print(f"Using ffmpeg at: {ffmpeg_path}")
+else:
+    print("Warning: ffmpeg not found, audio conversion may not work")
+
 
 def _generate_local_tts(text, output_file, voice=None):
     """Generate audio using local TTS implementation (espeak-ng command line).
-    
+
     Supports one speaker. For multi-speaker conversations, use
     `generate_conversation_tts`.
     """
     espeak_voice = voice or os.getenv("ESPEAK_VOICE", "en")
     espeak_speed = os.getenv("ESPEAK_SPEED", "125")
 
-    temp_wav_file = output_file.replace('.mp3', '.wav')
+    temp_wav_file = output_file.replace(".mp3", ".wav")
 
     try:
-        cmd = [
-            'espeak-ng',
-            '-v', espeak_voice,
-            '-s', str(espeak_speed),
-            '-w', temp_wav_file,
-            text
-        ]
+        cmd = ["espeak-ng", "-v", espeak_voice, "-s", str(espeak_speed), "-w", temp_wav_file, text]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
 
         if result.returncode != 0:
@@ -45,7 +49,7 @@ def _generate_local_tts(text, output_file, voice=None):
         if not os.path.exists(temp_wav_file):
             raise RuntimeError(f"espeak-ng did not create output file {temp_wav_file}")
 
-        if output_file.endswith('.mp3'):
+        if output_file.endswith(".mp3"):
             audio = AudioSegment.from_wav(temp_wav_file)
             audio.export(output_file, format="mp3")
             os.remove(temp_wav_file)
@@ -58,13 +62,15 @@ def _generate_local_tts(text, output_file, voice=None):
     except subprocess.TimeoutExpired:
         raise RuntimeError("espeak-ng synthesis timed out")
     except FileNotFoundError:
-        raise RuntimeError("espeak-ng is not installed. Install it:\n"
-                           "Ubuntu/Debian: sudo apt-get install espeak-ng\n"
-                           "macOS: brew install espeak\n"
-                           "CentOS/RHEL: sudo yum install espeak-ng")
+        raise RuntimeError(
+            "espeak-ng is not installed. Install it:\n"
+            "Ubuntu/Debian: sudo apt-get install espeak-ng\n"
+            "macOS: brew install espeak\n"
+            "CentOS/RHEL: sudo yum install espeak-ng"
+        )
     except Exception as e:
         raise RuntimeError(f"Local TTS synthesis error: {str(e)}")
-    
+
 
 def generate_conversation_tts(conversation, output_file):
     """

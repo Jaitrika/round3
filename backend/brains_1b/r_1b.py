@@ -1,4 +1,4 @@
-import fitz 
+import fitz
 import os
 from datetime import datetime
 import json
@@ -11,6 +11,7 @@ import re
 import pickle
 import hashlib
 import spacy
+
 # def get_file_hash(file_path):
 #     """Create a hash for file contents so cache updates if file changes."""
 #     hasher = hashlib.md5()
@@ -48,6 +49,7 @@ import spacy
 
 #     return sections, texts, embeddings
 
+
 def extract_sections_from_pdf(file_path):
     sections = custom_parser.process_multiple_documents([file_path])
     return sections
@@ -63,190 +65,255 @@ def extract_from_multiple_pdfs(folder_path, filenames):
             all_sections.extend(sections)
 
     return all_sections
-def create_dynamic_keyword_lists(filters, model=None, all_texts=None):
 
+
+def create_dynamic_keyword_lists(filters, model=None, all_texts=None):
     """
     Dynamically create keyword lists using multiple strategies:
     1. Linguistic pattern analysis (X-free, negations, etc.)
     2. Semantic similarity using embeddings
     3. Predefined mappings for common cases as fallback
     """
-    
+
     # Strategy 1: Linguistic Pattern Analysis
     def analyze_term_patterns(term):
         """Analyze linguistic patterns in terms"""
         term_lower = term.lower().strip()
         exclusions = set()
-        
+
         # Handle X-free patterns
-        if re.match(r'(\w+)[-\s]free$', term_lower):
-            base = re.match(r'(\w+)[-\s]free$', term_lower).group(1)
+        if re.match(r"(\w+)[-\s]free$", term_lower):
+            base = re.match(r"(\w+)[-\s]free$", term_lower).group(1)
             exclusions.add(base)
-            
+
             # Add common variations
-            if base == 'gluten':
-                exclusions.update(['wheat', 'barley', 'rye', 'flour', 'bread', 'pasta', 'noodles'])
-            elif base == 'dairy':
-                exclusions.update(['milk', 'cheese', 'butter', 'cream', 'yogurt'])
-            elif base == 'sugar':
-                exclusions.update(['sweetener', 'honey', 'syrup', 'candy'])
-                
+            if base == "gluten":
+                exclusions.update(["wheat", "barley", "rye", "flour", "bread", "pasta", "noodles"])
+            elif base == "dairy":
+                exclusions.update(["milk", "cheese", "butter", "cream", "yogurt"])
+            elif base == "sugar":
+                exclusions.update(["sweetener", "honey", "syrup", "candy"])
+
         # Handle negation prefixes
-        elif term_lower.startswith(('non', 'un', 'dis', 'anti')):
+        elif term_lower.startswith(("non", "un", "dis", "anti")):
             # Extract base term and add it to exclusions
-            for prefix in ['non', 'un', 'dis', 'anti']:
+            for prefix in ["non", "un", "dis", "anti"]:
                 if term_lower.startswith(prefix):
-                    base = term_lower[len(prefix):].lstrip('-')
+                    base = term_lower[len(prefix) :].lstrip("-")
                     exclusions.add(base)
                     break
-        
+
         # Handle dietary requirements
-        elif term_lower == 'vegetarian':
-            exclusions.update(['egg', 'meat', 'beef', 'pork', 'chicken', 'fish', 'seafood', 'bacon', 'ham', 'turkey', 'lamb', 'duck', 'sausage'])
-        elif term_lower == 'vegan':
-            exclusions.update(['meat', 'beef', 'pork', 'chicken', 'fish', 'dairy', 'milk', 'cheese', 'butter', 'cream', 'egg', 'honey'])
-            
+        elif term_lower == "vegetarian":
+            exclusions.update(
+                [
+                    "egg",
+                    "meat",
+                    "beef",
+                    "pork",
+                    "chicken",
+                    "fish",
+                    "seafood",
+                    "bacon",
+                    "ham",
+                    "turkey",
+                    "lamb",
+                    "duck",
+                    "sausage",
+                ]
+            )
+        elif term_lower == "vegan":
+            exclusions.update(
+                [
+                    "meat",
+                    "beef",
+                    "pork",
+                    "chicken",
+                    "fish",
+                    "dairy",
+                    "milk",
+                    "cheese",
+                    "butter",
+                    "cream",
+                    "egg",
+                    "honey",
+                ]
+            )
+
         # Handle quality/complexity terms
-        elif term_lower in ['simple', 'easy', 'basic']:
-            exclusions.update(['complex', 'complicated', 'advanced', 'difficult'])
-        elif term_lower in ['quick', 'fast']:
-            exclusions.update(['slow', 'lengthy', 'time-consuming'])
-        elif term_lower in ['cheap', 'budget', 'affordable']:
-            exclusions.update(['expensive', 'premium', 'luxury', 'costly'])
-            
+        elif term_lower in ["simple", "easy", "basic"]:
+            exclusions.update(["complex", "complicated", "advanced", "difficult"])
+        elif term_lower in ["quick", "fast"]:
+            exclusions.update(["slow", "lengthy", "time-consuming"])
+        elif term_lower in ["cheap", "budget", "affordable"]:
+            exclusions.update(["expensive", "premium", "luxury", "costly"])
+
         # Handle technology terms
-        elif term_lower == 'mobile':
-            exclusions.update(['desktop', 'stationary', 'fixed'])
-        elif term_lower == 'wireless':
-            exclusions.update(['wired', 'cable', 'corded'])
-            
+        elif term_lower == "mobile":
+            exclusions.update(["desktop", "stationary", "fixed"])
+        elif term_lower == "wireless":
+            exclusions.update(["wired", "cable", "corded"])
+
         return list(exclusions)
-    
+
     # Strategy 2: Semantic Similarity (if model available)
     def get_semantic_exclusions(term, similarity_threshold=0.4):
         """Find semantically related terms that might need to be excluded"""
         if not model or not all_texts:
             return []
-            
+
         try:
             # Get all unique words from texts
             all_words = set()
             for text in all_texts:
-                words = re.findall(r'\b[a-zA-Z]{3,}\b', text.lower())
+                words = re.findall(r"\b[a-zA-Z]{3,}\b", text.lower())
                 all_words.update(words)
-            
+
             # Remove common stop words and the term itself
-            stop_words = {'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'with', 'this', 'that', 'have', 'from', 'they', 'been', 'have', 'were', 'said', 'each', 'which', 'their', 'time', 'will', 'about', 'would', 'there', 'could', 'other'}
+            stop_words = {
+                "the",
+                "and",
+                "for",
+                "are",
+                "but",
+                "not",
+                "you",
+                "all",
+                "can",
+                "with",
+                "this",
+                "that",
+                "have",
+                "from",
+                "they",
+                "been",
+                "have",
+                "were",
+                "said",
+                "each",
+                "which",
+                "their",
+                "time",
+                "will",
+                "about",
+                "would",
+                "there",
+                "could",
+                "other",
+            }
             relevant_words = [w for w in all_words if w not in stop_words and w != term.lower() and len(w) > 2]
-            
+
             if not relevant_words:
                 return []
-            
+
             # Get embeddings
             term_embedding = model.encode([term])
             word_embeddings = model.encode(relevant_words[:200])  # Limit to avoid memory issues
-            
+
             # Find similar terms
             similarities = util.cos_sim(term_embedding, word_embeddings)[0]
             similar_terms = []
-            
+
             for i, sim in enumerate(similarities):
                 if sim > similarity_threshold:
                     similar_terms.append((relevant_words[i], float(sim)))
-            
+
             # Sort by similarity and return top terms
             similar_terms.sort(key=lambda x: x[1], reverse=True)
             return [term for term, _ in similar_terms[:5]]
-            
+
         except Exception as e:
             print(f"Error in semantic analysis for '{term}': {e}")
             return []
-    
+
     # Main processing
     dynamic_excludes = set()
     dynamic_includes = set()
-    
+
     # Process special requirements
-    for req in filters.get('special_requirements', []):
+    for req in filters.get("special_requirements", []):
         # Use linguistic pattern analysis
         pattern_exclusions = analyze_term_patterns(req)
         dynamic_excludes.update(pattern_exclusions)
-        
+
         # Use semantic similarity as additional source
         if model and all_texts:
             semantic_exclusions = get_semantic_exclusions(req)
             # Be more conservative with semantic matches to avoid noise
             dynamic_excludes.update(semantic_exclusions[:3])
-    
+
     # Process explicit exclusions
-    for exclude_term in filters.get('exclude', []):
+    for exclude_term in filters.get("exclude", []):
         dynamic_excludes.add(exclude_term)
-        
+
         # Add pattern-based exclusions
         pattern_exclusions = analyze_term_patterns(exclude_term)
         dynamic_excludes.update(pattern_exclusions)
-        
+
         # Add semantic exclusions (more conservative)
         if model and all_texts:
             semantic_exclusions = get_semantic_exclusions(exclude_term)
             dynamic_excludes.update(semantic_exclusions[:2])
-    
+
     # Process inclusions
-    for include_term in filters.get('include', []):
+    for include_term in filters.get("include", []):
         dynamic_includes.add(include_term)
-        
+
         # For inclusions, we might want to find similar terms to also include
         if model and all_texts:
             semantic_inclusions = get_semantic_exclusions(include_term, similarity_threshold=0.5)
             dynamic_includes.update(semantic_inclusions[:2])
-    
+
     return list(dynamic_excludes), list(dynamic_includes)
+
 
 def check_constraints(text, filters, model=None, all_texts=None):
     """
     Generic constraint checker that works for any domain.
     """
     text_lower = text.lower()
-    
+
     # Get dynamic keyword lists based on detected requirements
     dynamic_excludes, dynamic_includes = create_dynamic_keyword_lists(filters, model, all_texts)
-    
+
     # Check dynamic exclusions (from special requirements like "vegetarian")
-    
+
     for keyword in dynamic_excludes:
-        if re.search(rf'\b{re.escape(keyword)}\b', text_lower):
+        if re.search(rf"\b{re.escape(keyword)}\b", text_lower):
             return False
-    
+
     # Check explicit exclusions from query parsing
     for exclude_term in filters.get("exclude", []):
-        if re.search(rf'\b{re.escape(exclude_term)}\b', text_lower):
+        if re.search(rf"\b{re.escape(exclude_term)}\b", text_lower):
             return False
-    
+
     # Check required inclusions
     all_includes = filters.get("include", []) + dynamic_includes
     for include_term in all_includes:
-        if not re.search(rf'\b{re.escape(include_term)}\b', text_lower):
+        if not re.search(rf"\b{re.escape(include_term)}\b", text_lower):
             return False
-    
+
     # Check numeric constraints (if text contains numbers)
-    numbers_in_text = re.findall(r'\b(\d+)\b', text_lower)
+    numbers_in_text = re.findall(r"\b(\d+)\b", text_lower)
     if numbers_in_text and filters.get("numeric"):
         text_numbers = [int(n) for n in numbers_in_text]
         numeric_filters = filters["numeric"]
-        
+
         if "max" in numeric_filters:
             if any(n > numeric_filters["max"] for n in text_numbers):
                 return False
-        
+
         if "min" in numeric_filters:
             if any(n < numeric_filters["min"] for n in text_numbers):
                 return False
-        
+
         if "exact" in numeric_filters:
             if numeric_filters["exact"] not in text_numbers:
                 return False
-    
+
     return True
+
+
 def parse_generic_query(query):
     """
     Generic query parser that extracts constraints from natural language.
@@ -255,81 +322,81 @@ def parse_generic_query(query):
     query_lower = query.lower()
     filters = {
         "exclude": [],
-        "include": [], 
+        "include": [],
         "must_have": [],
         "cannot_have": [],
         "numeric": {},
-        "special_requirements": []
+        "special_requirements": [],
     }
-    
+
     # Pattern 1: Handle X-free patterns first (before other patterns)
     free_patterns = [
-        r'\b(\w+)[-\s]free\b',  # matches "gluten-free", "dairy free", etc.
+        r"\b(\w+)[-\s]free\b",  # matches "gluten-free", "dairy free", etc.
     ]
-    
+
     for pattern in free_patterns:
         matches = re.findall(pattern, query_lower)
         for match in matches:
             filters["exclude"].append(match.strip())
-    
+
     # Pattern 2: Direct exclusions - "no X", "without X", "not X", "avoid X"
     exclude_patterns = [
-        r'\b(?:no|not|non|never|avoid|without|exclude|excluding)\s+(\w+(?:\s+\w+)*?)(?:\s|$|,|\.)',
-        r'\b(?:don\'t|dont)\s+(?:want|use|include)\s+(\w+(?:\s+\w+)*?)(?:\s|$|,|\.)',
-        r'\b(?:free\s+from|free\s+of)\s+(\w+(?:\s+\w+)*?)(?:\s|$|,|\.)',
+        r"\b(?:no|not|non|never|avoid|without|exclude|excluding)\s+(\w+(?:\s+\w+)*?)(?:\s|$|,|\.)",
+        r"\b(?:don\'t|dont)\s+(?:want|use|include)\s+(\w+(?:\s+\w+)*?)(?:\s|$|,|\.)",
+        r"\b(?:free\s+from|free\s+of)\s+(\w+(?:\s+\w+)*?)(?:\s|$|,|\.)",
     ]
-    
+
     for pattern in exclude_patterns:
         matches = re.findall(pattern, query_lower)
         for match in matches:
             # Skip if it's part of an X-free phrase we already processed
             if not any(f"{match}-free" in query_lower or f"{match} free" in query_lower for _ in [1]):
                 filters["exclude"].append(match.strip())
-    
-    
+
     include_patterns = [
-        r'\b(?:with|contains|containing|has|having)\s+(\w+(?:\s+\w+)*?)(?:\s|$|,|\.)',
-        r'\b(?:must\s+have|need|needs|require|requires|should\s+have)\s+(\w+(?:\s+\w+)*?)(?:\s|$|,|\.)',
-        r'\b(?:only|exclusively)\s+(\w+(?:\s+\w+)*?)(?:\s|$|,|\.)',
+        r"\b(?:with|contains|containing|has|having)\s+(\w+(?:\s+\w+)*?)(?:\s|$|,|\.)",
+        r"\b(?:must\s+have|need|needs|require|requires|should\s+have)\s+(\w+(?:\s+\w+)*?)(?:\s|$|,|\.)",
+        r"\b(?:only|exclusively)\s+(\w+(?:\s+\w+)*?)(?:\s|$|,|\.)",
     ]
-    
+
     for pattern in include_patterns:
         matches = re.findall(pattern, query_lower)
         for match in matches:
             # Skip if it's a X-free requirement (like "including gluten-free")
-            if not re.search(r'\w+[-\s]free', match):
+            if not re.search(r"\w+[-\s]free", match):
                 filters["include"].append(match.strip())
-    
+
     # Pattern 4: Special dietary/category requirements
     special_req_patterns = [
-        r'\b(vegetarian|vegan|kosher|halal|organic|natural|fresh|local)\b',
-        r'\b(budget[-\s]friendly|cheap|affordable|expensive|premium|luxury)\b',
-        r'\b(quick|fast|slow|easy|simple|complex|advanced|beginner)\b',
-        r'\b(indoor|outdoor|portable|stationary|mobile|desktop)\b',
+        r"\b(vegetarian|vegan|kosher|halal|organic|natural|fresh|local)\b",
+        r"\b(budget[-\s]friendly|cheap|affordable|expensive|premium|luxury)\b",
+        r"\b(quick|fast|slow|easy|simple|complex|advanced|beginner)\b",
+        r"\b(indoor|outdoor|portable|stationary|mobile|desktop)\b",
     ]
-    
+
     for pattern in special_req_patterns:
         matches = re.findall(pattern, query_lower)
         filters["special_requirements"].extend(matches)
-    
+
     # Pattern 5: Numeric constraints
     numeric_patterns = [
-        (r'\b(?:under|less\s+than|below|maximum|max)\s+(\d+)', 'max'),
-        (r'\b(?:over|more\s+than|above|minimum|min|at\s+least)\s+(\d+)', 'min'),
-        (r'\b(?:exactly|equal\s+to|precisely)\s+(\d+)', 'exact'),
-        (r'\b(\d+)\s*[-–]\s*(\d+)', 'range'),  # matches "5-10", "20–30"
+        (r"\b(?:under|less\s+than|below|maximum|max)\s+(\d+)", "max"),
+        (r"\b(?:over|more\s+than|above|minimum|min|at\s+least)\s+(\d+)", "min"),
+        (r"\b(?:exactly|equal\s+to|precisely)\s+(\d+)", "exact"),
+        (r"\b(\d+)\s*[-–]\s*(\d+)", "range"),  # matches "5-10", "20–30"
     ]
-    
+
     for pattern, constraint_type in numeric_patterns:
         matches = re.findall(pattern, query_lower)
         for match in matches:
-            if constraint_type == 'range':
+            if constraint_type == "range":
                 filters["numeric"]["min"] = int(match[0])
                 filters["numeric"]["max"] = int(match[1])
             else:
                 filters["numeric"][constraint_type] = int(match)
-    
+
     return filters
+
 
 # def core():
 #     with open("input/input.json", "r", encoding="utf-8") as f:
@@ -353,7 +420,7 @@ def parse_generic_query(query):
 #         query_embedding = model.encode(query, convert_to_tensor=True)
 #         ###section embeddings shd be givennnn
 #         ##
-        
+
 #         cache_dir = "cache_embeddings"
 #         os.makedirs(cache_dir, exist_ok=True)
 #         cache_file = os.path.join(cache_dir, f"{os.path.basename("abcd")}.pkl")
@@ -386,6 +453,7 @@ def parse_generic_query(query):
 # Load once at startup (fast after first load)
 nlp = spacy.load("en_core_web_sm")
 
+
 def split_sentences(text: str):
     """Split text into sentences using spaCy."""
     doc = nlp(text)
@@ -394,44 +462,44 @@ def split_sentences(text: str):
 
 def compress_to_evidence_nuggets(reranked_sections, query_embedding, model):
     evidence_nuggets = []
-    
+
     for sec in reranked_sections:
         # Split into sentences
         sentences = split_sentences(sec["text"])
-        
+
         if len(sentences) <= 3:
             # Keep short sections as-is
-            evidence_nuggets.append({
-                "text": sec["text"],
-                "doc_id": sec["document"],
-                "page": sec["page_number"],
-                "confidence": sec["score"]
-            })
+            evidence_nuggets.append(
+                {"text": sec["text"], "doc_id": sec["document"], "page": sec["page_number"], "confidence": sec["score"]}
+            )
         else:
             # Score each sentence
             sentence_embeddings = model.encode(sentences, convert_to_tensor=True)
             sentence_scores = util.cos_sim(query_embedding, sentence_embeddings)[0]
-            
+
             # Keep top 2-3 sentences
             top_sentence_indices = torch.topk(sentence_scores, k=min(3, len(sentences))).indices.tolist()
             selected_sentences = [sentences[i] for i in sorted(top_sentence_indices)]
-            
-            evidence_nuggets.append({
-                "text": " ".join(selected_sentences),
-                "doc_id": sec["document"],
-                "page": sec["page_number"],
-                "confidence": sec["score"]
-            })
-    
+
+            evidence_nuggets.append(
+                {
+                    "text": " ".join(selected_sentences),
+                    "doc_id": sec["document"],
+                    "page": sec["page_number"],
+                    "confidence": sec["score"],
+                }
+            )
+
     return evidence_nuggets
+
 
 def simple_dedup(nuggets, model, threshold=0.85):
     if len(nuggets) <= 1:
         return nuggets
-        
+
     texts = [n["text"] for n in nuggets]
     embeddings = model.encode(texts, convert_to_tensor=True)
-    
+
     keep = []
     for i, nugget in enumerate(nuggets):
         is_duplicate = False
@@ -440,12 +508,13 @@ def simple_dedup(nuggets, model, threshold=0.85):
             if similarity > threshold:
                 is_duplicate = True
                 break
-        
+
         if not is_duplicate:
             nugget["original_idx"] = i
             keep.append(nugget)
-    
+
     return keep
+
 
 def get_evidence_for_insights(max_tokens=2000):
     """
@@ -455,37 +524,39 @@ def get_evidence_for_insights(max_tokens=2000):
     import os
     import json
     from sentence_transformers import SentenceTransformer
-    
+
     # Load the already-generated insights data
     backend_dir = os.path.dirname(os.path.dirname(__file__))  # Go up from r_1b.py location
-    cache_dir = os.path.join(backend_dir, "cache_embeddings") 
+    cache_dir = os.path.join(backend_dir, "cache_embeddings")
     insights_cache_file = os.path.join(cache_dir, "insights_data.json")
-    
+
     with open(insights_cache_file, "r", encoding="utf-8") as f:
         insights_data = json.load(f)
-    
+
     # Reconstruct what we need
     reranked_sections = insights_data["reranked_sections"]
     selected_text = insights_data["selected_text"]
-    
+
     # Load model and create query embedding (fast since model loads from cache)
-    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device="cpu")
     query_embedding = model.encode(selected_text, convert_to_tensor=True)
-    
+
     # Generate evidence nuggets
     evidence_nuggets = compress_to_evidence_nuggets(reranked_sections, query_embedding, model)
     deduped_nuggets = simple_dedup(evidence_nuggets, model)
-    
+
     # Format for Gemini prompt
     evidence_text = ""
     for i, nugget in enumerate(deduped_nuggets[:10]):  # Limit to top 10
         evidence_text += f"[Doc: {nugget['doc_id']}, Page: {nugget['page']}]\n{nugget['text']}\n\n"
-    
+
     # Token estimation and truncation if needed
     if len(evidence_text) > max_tokens * 4:  # Rough token estimation
-        evidence_text = evidence_text[:max_tokens * 4] + "..."
-    
+        evidence_text = evidence_text[: max_tokens * 4] + "..."
+
     return evidence_text, selected_text, deduped_nuggets
+
+
 def md5_of_file(filepath):
     """Compute MD5 hash of a file to detect changes."""
     hash_md5 = hashlib.md5()
@@ -494,12 +565,13 @@ def md5_of_file(filepath):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
+
 def core():
     # Get paths relative to backend directory
     backend_dir = os.path.dirname(os.path.dirname(__file__))
     input_dir = os.path.join(backend_dir, "input")
     input_file = os.path.join(input_dir, "input.json")
-    
+
     print(f"Loading input from: {input_file}")
     with open(input_file, "r", encoding="utf-8") as f:
         input_data = json.load(f)
@@ -532,17 +604,17 @@ def core():
     os.makedirs(output_dir_frontend, exist_ok=True)
     pdf_folder = os.path.join(backend_dir, "documents")
     os.makedirs(pdf_folder, exist_ok=True)
-    
+
     print(f"Looking for PDFs in: {pdf_folder}")
     print(f"Documents info received: {documents_info}")
-    
+
     # Only process files that exist in both documents_info and the folder
     available_files = set(os.listdir(pdf_folder))
     pdf_files = [doc["filename"] for doc in documents_info if doc["filename"] in available_files]
-    
+
     if not pdf_files:
         raise FileNotFoundError("No PDF files found in the documents folder that match the input.json list")
-    
+
     print(f"PDF files found and will be processed: {pdf_files}")
 
     # Generate hash for all PDFs to detect new/changed files
@@ -564,13 +636,12 @@ def core():
     cache_file = os.path.join(cache_dir, "embeddings.pkl")
     insights_cache_file = os.path.join(cache_dir, "insights_data.json")
 
-
     use_cache = False
     if os.path.exists(cache_file):
         with open(cache_file, "rb") as f:
             cache_data = pickle.load(f)
         cached_hashes = cache_data.get("file_hashes", {})
-        
+
         # Compare hashes
         if cached_hashes == file_hashes:
             use_cache = True
@@ -592,20 +663,23 @@ def core():
         print("Number of non-empty sections:", len(texts))
 
         # ---- STEP 3: Sentence Embeddings ----
-        model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+        model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device="cpu")
         section_embeddings = model.encode(texts, convert_to_tensor=True)
 
         # Save to cache
         with open(cache_file, "wb") as f:
-            pickle.dump({
-                "sections": section_embeddings,
-                "all_sections": all_sections,
-                "texts": texts,
-                "file_hashes": file_hashes
-            }, f)
+            pickle.dump(
+                {
+                    "sections": section_embeddings,
+                    "all_sections": all_sections,
+                    "texts": texts,
+                    "file_hashes": file_hashes,
+                },
+                f,
+            )
 
     # ---- Step 4: Query Embedding & Search ----
-    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device="cpu")
     query_embedding = model.encode(query, convert_to_tensor=True)
 
     cosine_scores = util.cos_sim(query_embedding, section_embeddings)[0]
@@ -630,15 +704,15 @@ def core():
         # Try with more sections
         cosine_top_k_expanded = min(50, len(all_sections))  # Expand search
         top_indices_expanded = torch.topk(cosine_scores, k=cosine_top_k_expanded).indices.tolist()
-        
+
         top_sections_expanded = [all_sections[i] for i in top_indices_expanded]
         top_texts_expanded = [texts[i] for i in top_indices_expanded]
-        
+
         for sec, txt in zip(top_sections_expanded, top_texts_expanded):
             if check_constraints(txt, filters, model, texts):
                 top_sections.append(sec)
                 top_texts.append(txt)
-        
+
         # If still nothing found, there might be an issue with the documents
         if not top_sections:
             print("Error: No sections match the constraints!")
@@ -652,7 +726,7 @@ def core():
         reranked_sections = []
     else:
         cross_model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
-        #cross_model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2",local_files_only=True,cache_folder="/root/.cache")
+        # cross_model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2",local_files_only=True,cache_folder="/root/.cache")
         cross_input = [(query, txt) for txt in top_texts]
         cross_scores = cross_model.predict(cross_input)
 
@@ -663,7 +737,7 @@ def core():
                 "text": sec["text"],
                 "document": sec.get("document", "unknown.pdf"),
                 "section_title": sec.get("section_title", ""),
-                "page_number": sec.get("page", -1)
+                "page_number": sec.get("page", -1),
             }
             for score, sec in zip(cross_scores, top_sections)
         ]
@@ -671,55 +745,46 @@ def core():
         # Sort descending by score
         reranked_sections.sort(key=lambda x: x["score"], reverse=True)
 
-
     output = {
-        "metadata": {
-            "input_documents": pdf_files,
-            "processing_timestamp": datetime.now().isoformat()
-
-        },
+        "metadata": {"input_documents": pdf_files, "processing_timestamp": datetime.now().isoformat()},
         "extracted_sections": [],
-        "subsection_analysis": []
+        "subsection_analysis": [],
     }
 
-    top_k =5
+    top_k = 5
     for idx, sec in enumerate(reranked_sections[:top_k]):
-        output["extracted_sections"].append({
-            "document": sec["document"],
-            "section_title": sec["section_title"],
-            "importance_rank": idx + 1,
-            "page_number": sec["page_number"]+1
-        })
-        output["subsection_analysis"].append({
-            "document": sec["document"],
-            "refined_text": sec["text"],
-            "page_number": sec["page_number"]+1
-        })
+        output["extracted_sections"].append(
+            {
+                "document": sec["document"],
+                "section_title": sec["section_title"],
+                "importance_rank": idx + 1,
+                "page_number": sec["page_number"] + 1,
+            }
+        )
+        output["subsection_analysis"].append(
+            {"document": sec["document"], "refined_text": sec["text"], "page_number": sec["page_number"] + 1}
+        )
 
     # ---- STEP 6: Save Output ----
-    
+
     print(f"Saving output to: {output_file_backend} and {output_file_frontend}")
     with open(output_file_backend, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=4, ensure_ascii=False)
     with open(output_file_frontend, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=4, ensure_ascii=False)
-    
+
     # NEW: Always cache the insights data alongside the regular output
     insights_data = {
         "reranked_sections": [
-            {
-                "score": sec["score"],
-                "text": sec["text"], 
-                "document": sec["document"],
-                "page_number": sec["page_number"]
-            } for sec in reranked_sections[:top_k]
+            {"score": sec["score"], "text": sec["text"], "document": sec["document"], "page_number": sec["page_number"]}
+            for sec in reranked_sections[:top_k]
         ],
         "selected_text": selected_text,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
-    
+
     # Save insights cache alongside regular cache
-    cache_dir = os.path.join(backend_dir, "cache_embeddings") 
+    cache_dir = os.path.join(backend_dir, "cache_embeddings")
     insights_cache_file = os.path.join(cache_dir, "insights_data.json")
     with open(insights_cache_file, "w", encoding="utf-8") as f:
         json.dump(insights_data, f, indent=4, ensure_ascii=False)

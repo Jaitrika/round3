@@ -6,7 +6,7 @@
 
 //   const fetchFiles = async () => {
 //     try {
-//       const res = await fetch("http://127.0.0.1:8000/list-files/");
+//       const res = await fetch("/list-files/");
 //       const data = await res.json();
 //       setFiles(data.files || []);
 //     } catch (err) {
@@ -39,7 +39,6 @@
 
 // export default FileList;
 
-
 // import React, { useEffect, useState } from "react";
 
 // function FileList({ onSelect }) {
@@ -48,7 +47,7 @@
 
 //   const fetchFiles = async () => {
 //     try {
-//       const res = await fetch("http://127.0.0.1:8000/list-files/");
+//       const res = await fetch("/list-files/");
 //       const data = await res.json();
 //       setFiles(data.files || []);
 //     } catch (err) {
@@ -102,7 +101,6 @@
 
 // export default FileList;
 
-
 import React, { useEffect, useState } from "react";
 
 function FileList({ onSelect }) {
@@ -111,7 +109,7 @@ function FileList({ onSelect }) {
 
   const fetchFiles = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/list-files/");
+      const res = await fetch("/list-files/");
       const data = await res.json();
       setFiles(data.files || []);
     } catch (err) {

@@ -2,7 +2,7 @@ export async function fetchPodcast(selectedText) {
   if (!selectedText) return null;
 
   try {
-    const response = await fetch("http://localhost:8000/generate-podcast", {
+    const response = await fetch("/generate-podcast", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ selected_text: selectedText }),

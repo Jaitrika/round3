@@ -65,6 +65,7 @@ import React, { useState } from "react";
 function FileUploader({ onUploadComplete }) {
   const [files, setFiles] = useState([]);
   const [uploadResult, setUploadResult] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleFileChange = (e) => {
     setFiles(Array.from(e.target.files));
@@ -73,11 +74,12 @@ function FileUploader({ onUploadComplete }) {
   const handleUpload = async () => {
     if (files.length === 0) return;
 
+    setIsUploading(true);
     const formData = new FormData();
     files.forEach((f) => formData.append("files", f));
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/upload/", {
+      const res = await fetch("/upload/", {
         method: "POST",
         body: formData,
       });
@@ -85,29 +87,35 @@ function FileUploader({ onUploadComplete }) {
       setUploadResult(data);
       if (data.saved_files && data.saved_files.length > 0 && onUploadComplete) {
         // pass the first saved file URL to parent so it can be viewed
-        onUploadComplete(data.saved_files[0]);
+        await onUploadComplete(data.saved_files[0]);
       }
     } catch (err) {
       console.error("Upload failed", err);
+    } finally {
+      setIsUploading(false);
     }
   };
 
   return (
     <div className="upload-section">
-      <h3 style={{ color:"#6a1cce"}}>Upload PDFs</h3>
+      <h3 style={{ color: "#6a1cce" }}>Upload PDFs</h3>
 
       <div className="file-input-container">
-        <input 
-          type="file" 
-          accept="application/pdf" 
-          multiple 
-          onChange={handleFileChange} 
+        <input
+          type="file"
+          accept="application/pdf"
+          multiple
+          onChange={handleFileChange}
         />
       </div>
-      <button className="upload-btn" onClick={handleUpload}>
-        Upload
+      <button
+        className="upload-btn"
+        onClick={handleUpload}
+        disabled={isUploading || files.length === 0}
+      >
+        {isUploading ? "⏳ Uploading..." : "Upload"}
       </button>
-      
+
       {/* {uploadResult && (
         <div className="upload-results">
           <div>
