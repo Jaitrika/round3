@@ -50,16 +50,7 @@ round3/
 2. Run the application:
 
    ```bash
-   docker run -v /path/to/credentials:/credentials \
-     -e ADOBE_EMBED_API_KEY=<ADOBE_EMBED_API_KEY> \
-     -e LLM_PROVIDER=gemini \
-     -e GOOGLE_APPLICATION_CREDENTIALS=/credentials/adbe-gcp.json \
-     -e GEMINI_MODEL=gemini-2.5-flash \
-     -e TTS_PROVIDER=azure \
-     -e AZURE_TTS_KEY=TTS_KEY \
-     -e AZURE_TTS_ENDPOINT=TTS_ENDPOINT \
-     -p 8080:8080 \
-     yourimageidentifier
+   docker run –v /path/to/credentials:/credentials -e ADOBE_EMBED_API_KEY=<ADOBE_EMBED_API_KEY> -e LLM_PROVIDER=gemini -e GOOGLE_APPLICATION_CREDENTIALS=/credentials/adbe-gcp.json -e GEMINI_MODEL=gemini-2.5-flash -e TTS_PROVIDER=azure -e AZURE_TTS_KEY=TTS_KEY -e AZURE_TTS_ENDPOINT=TTS_ENDPOINT -p 8080:8080 yourimageidentifier
    ```
 
 3. Access the application at: `http://localhost:8080`
