@@ -251,6 +251,13 @@ function PDFViewer({
   onSaveInputResponse,
   selectedText,
   isNavigatingToSection,
+  onInsights,
+  onPodcast,
+  isGeneratingInsights,
+  isGeneratingPodcast,
+  insightsSuccess,
+  podcastSuccess,
+  hasRelevantSections,
 }) {
   const containerRef = useRef(null);
   const [adobeViewer, setAdobeViewer] = useState(null);
@@ -368,20 +375,75 @@ function PDFViewer({
           }
         }
 
-        if (jumpCommand.text) {
+        if (jumpCommand.text || jumpCommand.section_title) {
           try {
-            console.log("Searching for text:", jumpCommand.text);
-            // Try to search for a shorter excerpt if the text is very long
-            const searchText =
-              jumpCommand.text.length > 50
-                ? jumpCommand.text.substring(0, 50)
-                : jumpCommand.text;
+            // Build search strategies from available text
+            const searchStrategies = [];
 
-            await apis.search(searchText, {
-              matchCase: false,
-              wholeWord: false,
-            });
-            console.log("Search completed successfully");
+            // If we have refined_text, use it
+            if (jumpCommand.text && jumpCommand.text.trim()) {
+              console.log("Searching for refined text:", jumpCommand.text);
+              searchStrategies.push(
+                // Strategy 1: First few words (most reliable)
+                jumpCommand.text.split(" ").slice(0, 3).join(" "),
+                // Strategy 2: Short excerpt from beginning
+                jumpCommand.text.substring(0, 30),
+                // Strategy 3: Look for distinctive words
+                jumpCommand.text
+                  .split(" ")
+                  .filter((word) => word.length > 4)
+                  .slice(0, 2)
+                  .join(" "),
+                // Strategy 4: Original text (if short)
+                jumpCommand.text.length <= 50 ? jumpCommand.text : null
+              );
+            }
+
+            // If no refined_text or it's empty, try section title
+            if (jumpCommand.section_title && jumpCommand.section_title.trim()) {
+              console.log(
+                "Trying section title search:",
+                jumpCommand.section_title
+              );
+              searchStrategies.push(
+                jumpCommand.section_title,
+                jumpCommand.section_title.split(" ").slice(0, 2).join(" ")
+              );
+            }
+
+            // Filter out null/empty strategies
+            const validStrategies = searchStrategies.filter(Boolean);
+
+            if (validStrategies.length === 0) {
+              console.log(
+                "No text available for highlighting, only navigating to page"
+              );
+              return; // Just navigate to page without highlighting
+            }
+
+            // Try each strategy until one works
+            let searchSuccess = false;
+            for (const searchText of validStrategies) {
+              try {
+                console.log(`Trying search strategy: "${searchText}"`);
+                await apis.search(searchText, {
+                  matchCase: false,
+                  wholeWord: false,
+                });
+                console.log("Search completed successfully");
+                searchSuccess = true;
+                break;
+              } catch (strategyError) {
+                console.log(`Search strategy failed: ${strategyError.message}`);
+                continue;
+              }
+            }
+
+            if (!searchSuccess) {
+              console.warn(
+                "All search strategies failed, but page navigation should still work"
+              );
+            }
           } catch (searchError) {
             console.error("Error searching for text:", searchError);
           }
@@ -451,14 +513,7 @@ function PDFViewer({
     };
   }, []);
 
-  const handlePodcast = async () => {
-    if (!selectedText) {
-      alert("Please select text in the PDF before generating a podcast.");
-      return;
-    }
-    const result = await fetchPodcast(selectedText);
-    setPodcast(result);
-  };
+  // handlePodcast is now passed as onPodcast prop
 
   return (
     <div>
@@ -469,22 +524,80 @@ function PDFViewer({
       />
 
       <div className="insights-section">
-        {/* Action Buttons - Only Podcast button remains */}
-        <div style={{ marginTop: "16px", display: "flex", gap: "12px" }}>
+        {/* Action Buttons - Insights and Podcast */}
+        <div className="action-buttons-container">
           <button
-            onClick={handlePodcast}
-            disabled={!selectedText}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "#28a745",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              cursor: selectedText ? "pointer" : "not-allowed",
-              opacity: selectedText ? 1 : 0.6,
-            }}
+            onClick={onInsights}
+            disabled={
+              !selectedText || !hasRelevantSections || isGeneratingInsights
+            }
+            className={`insights-btn modern-btn ${
+              hasRelevantSections ? "enabled" : "disabled"
+            } ${isGeneratingInsights ? "loading" : ""} ${
+              insightsSuccess ? "success" : ""
+            }`}
+            title={
+              hasRelevantSections
+                ? "Generate insights from your selected text"
+                : "Select text and wait for relevant sections to be generated first"
+            }
           >
-            Generate Podcast
+            <div className="btn-content">
+              <div className="btn-icon-wrapper">
+                {isGeneratingInsights ? (
+                  <div className="loading-spinner"></div>
+                ) : (
+                  <svg
+                    className="btn-icon"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                )}
+              </div>
+              <span className="btn-text">
+                {isGeneratingInsights ? "Generating..." : "Generate Insights"}
+              </span>
+            </div>
+            {isGeneratingInsights && <div className="progress-bar"></div>}
+          </button>
+
+          <button
+            onClick={onPodcast}
+            disabled={
+              !selectedText || !hasRelevantSections || isGeneratingPodcast
+            }
+            className={`podcast-btn modern-btn ${
+              hasRelevantSections ? "enabled" : "disabled"
+            } ${isGeneratingPodcast ? "loading" : ""} ${
+              podcastSuccess ? "success" : ""
+            }`}
+            title={
+              hasRelevantSections
+                ? "Generate podcast from your selected text"
+                : "Select text and wait for relevant sections to be generated first"
+            }
+          >
+            <div className="btn-content">
+              <div className="btn-icon-wrapper">
+                {isGeneratingPodcast ? (
+                  <div className="loading-spinner"></div>
+                ) : (
+                  <svg
+                    className="btn-icon"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M12 1a9 9 0 0 0-9 9v7c0 1.66 1.34 3 3 3h1v-9H6c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h1v2H6c-2.76 0-5-2.24-5-5v-7C1 4.48 5.48 0 12 0s11 4.48 11 10v7c0 2.76-2.24 5-5 5h-1v-2h1c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1h-1v9h1c1.66 0 3-1.34 3-3v-7a9 9 0 0 0-9-9z" />
+                  </svg>
+                )}
+              </div>
+              <span className="btn-text">
+                {isGeneratingPodcast ? "Generating..." : "Generate Podcast"}
+              </span>
+            </div>
+            {isGeneratingPodcast && <div className="progress-bar"></div>}
           </button>
         </div>
 
