@@ -136,6 +136,7 @@ import FileUploader from "./components/FileUploader";
 import FileList from "./components/FileList";
 import PDFViewer from "./components/PDFViewer";
 import analysis from "./output/output.json";
+import "./App.css";
 
 function App() {
   const [selectedUrl, setSelectedUrl] = useState(null);
@@ -143,62 +144,69 @@ function App() {
   const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c";
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 12 }}>
-      <div>
-
-        <FileUploader onUploadComplete={(url) => {
-          setSelectedUrl(url);
-          setJumpCommand(null); // Reset jump command for normal viewing
-        }} />
-        <FileList onSelect={(url) => {
-          setSelectedUrl(url);
-          setJumpCommand(null); // Reset jump command for normal viewing
-        }} />
-
-        {analysis.subsection_analysis?.map((sec, idx) => {
-          const sectionData = analysis.extracted_sections[idx];
-          const documentUrl = `/documents/${sectionData.document}`;
-          
-          return (
-            <button
-              key={idx}
-              style={{ display: "block", marginTop: 8, width: "100%", padding: "8px", marginBottom: "4px" }}
-              onClick={() => {
-                // Ensure clean path without any double slashes
-                const cleanDocName = sectionData.document.replace(/^\/+|\/+$/g, '');
-                const documentUrl = `http://127.0.0.1:8000/files/${cleanDocName}`;
-                console.log("Setting URL:", documentUrl);
-                setSelectedUrl(documentUrl);
+    <div className="App">
+      <div className="main-container">
+        <div className="content-grid">
+          <div className="sidebar">
+            <FileUploader 
+              onUploadComplete={(url) => {
+                setSelectedUrl(url);
+                setJumpCommand(null); // Reset jump command for normal viewing
+              }} 
+            />
+            <FileList 
+              onSelect={(url) => {
+                setSelectedUrl(url);
+                setJumpCommand(null); // Reset jump command for normal viewing
+              }} 
+            />
+            <div className="section-buttons">
+              {analysis.subsection_analysis?.map((sec, idx) => {
+                const sectionData = analysis.extracted_sections[idx];
                 
-                // Add a small delay before setting the jump command
-                setTimeout(() => {
-                  const jumpData = {
-                    page: sectionData.page_number,
-                    text: sec.refined_text?.trim()
-                  };
-                  console.log("Setting jump command:", jumpData);
-                  setJumpCommand(jumpData);
-                }, 1000);
-              }}
-            >
-              Go to {sectionData.section_title}
-            </button>
-          );
-        })}
-      </div>
-
-      <div>
-        {selectedUrl ? (
-          <PDFViewer
-            fileUrl={selectedUrl}
-            clientId={ADOBE_CLIENT_ID}
-            jumpCommand={jumpCommand}
-          />
-        ) : (
-          <div style={{ padding: 20 }}>
-            No PDF selected. Upload or choose from the list.
+                return (
+                  <button
+                    key={idx}
+                    className="section-btn"
+                    onClick={() => {
+                      // Ensure clean path without any double slashes
+                      const cleanDocName = sectionData.document.replace(/^\/+|\/+$/g, '');
+                      const documentUrl = `http://127.0.0.1:8000/files/${cleanDocName}`;
+                      console.log("Setting URL:", documentUrl);
+                      setSelectedUrl(documentUrl);
+                      
+                      // Add a small delay before setting the jump command
+                      setTimeout(() => {
+                        const jumpData = {
+                          page: sectionData.page_number,
+                          text: sec.refined_text?.trim()
+                        };
+                        console.log("Setting jump command:", jumpData);
+                        setJumpCommand(jumpData);
+                      }, 1000);
+                    }}
+                  >
+                    Go to {sectionData.section_title}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        )}
+          
+          <div className="pdf-container">
+            {selectedUrl ? (
+              <PDFViewer
+                fileUrl={selectedUrl}
+                clientId={ADOBE_CLIENT_ID}
+                jumpCommand={jumpCommand}
+              />
+            ) : (
+              <div className="placeholder-text">
+                No PDF selected. Upload or choose from the list.
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
