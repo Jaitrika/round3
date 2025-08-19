@@ -1,603 +1,996 @@
-/* Reset and base styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body, html {
-  height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-}
-
-/* Main App container with gradient background */
-.App {
-  min-height: 100vh;
-  background: linear-gradient(90deg, #5171ff8a 0%, #ff66c477 100%);
-  padding: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start; /* Keep flex-start for top alignment */
-  padding-top: 40px; /* Add some top padding for better centering */
-  padding-bottom: 40px; /* Add bottom padding for consistency */
-}
-
-/* Main content container - white transparent box */
-.main-container {
-  background: rgba(255, 255, 255, 0.46);
-  border-radius: 24px;
-  padding: 32px;
-  width: 100%;
-  max-width: 1300px;
-  /* Remove fixed min-height and let it adapt to content */
-  /* min-height: calc(100vh - 40px); */
-  height: fit-content; /* Adapt to content height */
-  min-height: 400px; /* Small minimum to prevent collapse */
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  margin: auto; /* Center the container */
-}
-
-/* Grid layout for the main content with smooth transitions */
-.content-grid {
-  display: grid;
-  grid-template-columns: 320px 1fr 0fr;
-  gap: 24px;
-  /* Remove fixed height */
-  /* height: 100%; */
-  min-height: 300px; /* Small minimum for grid */
-  transition: all 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
-  overflow: hidden;
-}
-
-/* Menu mode - slide layout */
-.content-grid.menu-mode {
-  grid-template-columns: 0fr 1fr 320px;
-}
-
-/* Left sidebar styling with slide animation */
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  transition: all 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
-  overflow: hidden;
-  min-width: 320px;
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.sidebar.sidebar-hidden {
-  transform: translateX(-100%);
-  opacity: 0;
-  min-width: 0;
-  pointer-events: none;
-}
-
-/* Upload section styling */
-.upload-section {
-  background: rgba(255, 255, 255, 0.79);
-  border-radius: 16px;
-  padding: 20px;
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.upload-section h3 {
-  margin-bottom: 16px;
-  color: #333;
-  font-weight: 600;
-  font-size: 18px;
-}
-
-/* File input styling */
-.file-input-container {
-  margin-bottom: 16px;
-}
-
-.file-input-container input[type="file"] {
-  width: 100%;
-  padding: 12px;
-  border: 2px dashed rgba(182, 25, 255, 0.3);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.5);
-  font-size: 14px;
-  color: #919191;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.file-input-container input[type="file"]::file-selector-button {
-  background: #919191;
-  color: #ffffff;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  margin-right: 12px;
-}
-
-.file-input-container input[type="file"]::file-selector-button:hover {
-  transform: scale(1.02);
-  transition: all 0.3s ease;
-}
-
-/* Button styling */
-.upload-btn, .refresh-btn {
-  background: #6a1cce;
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 10px;
-  font-weight: 750;
-  cursor: pointer;
-  transition: all 0.5s ease;
-  font-size: 14px;
-}
-
-.upload-btn:hover, .refresh-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(81, 112, 255, 0.4);
-}
-
-/* File list styling */
-.file-list {
-  background: rgba(255, 255, 255);
-  border-radius: 16px;
-  padding: 20px;
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.file-list h3 {
-  margin-bottom: 16px;
-  color: #333;
-  font-weight: 600;
-  font-size: 18px;
-}
-
-.file-list ul {
-  list-style: none;
-  margin-top: 16px;
-}
-
-.file-list li {
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  margin-bottom: 8px;
-  background: #fee5ff;
-  border-radius: 10px;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.file-list li:hover {
-  background: #fee5ff;
-  transform: translateX(10px);
-}
-
-.file-list li.active {
-  background: #6a1cce;
-  color: rgb(255, 255, 255);
-  font-weight: 600;
-}
-
-.active-text {
-  color: white;
-  font-weight: 600;
-}
-.restore-btn {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: #6a1cce; /* purple */
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  z-index: 2000;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  transition: all 0.3s ease;
-}
-
-.restore-btn:hover {
-  background: #5a1aa8;
-  transform: scale(1.05);
-}
-
-
-/* Section buttons - removed from sidebar */
-.view-btn, .section-btn {
-  background: #6A1CCE;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  margin-right: 12px;
-  transition: all 0.3s ease;
-  min-width: 50px;
-}
-
-.view-btn:hover, .section-btn:hover {
-  background: rgba(81, 112, 255, 1);
-  transform: scale(1.05);
-}
-
-.pdf-container {
-  background: rgba(255, 255, 255);
-  border-radius: 16px;
-  padding: 20px;
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  /* Remove height: fit-content and let it be natural */
-  height: auto;
-  min-height: 400px; /* Minimum height for PDF viewer */
-  transition: all 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-
-/* Relevant sections panel - smooth slide-in animation */
-.relevant-sections {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 16px;
-  padding: 0; /* keep padding only when visible */
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: all 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
-  overflow: hidden;
-  min-width: 0;
-  opacity: 0;
-  transform: translateX(100%);
-  pointer-events: none;
-  height: auto;        /* 🔥 auto-height */
-  align-self: flex-start; /* 🔥 makes it shrink to content */
-}
-.relevant-sections.relevant-sections-visible {
-  padding: 20px;
-  min-width: 320px;
-  opacity: 1;
-  transform: translateX(0);
-  pointer-events: auto;
-  height: auto;         /* 🔥 shrink-wrap */
-}
-
-.relevant-sections-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid rgba(106, 28, 206, 0.2);
-}
-
-.relevant-sections-header h3 {
-  color: #6a1cce;
-  font-weight: 600;
-  font-size: 18px;
-  margin: 0;
-}
-
-
-.toggle-menu-btn {
-  
-  background: #6a1cce;
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  font-size: 16px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 45px;
-  height: 45px;
-}
-
-.toggle-menu-btn:hover {
-  background: #5a1aa8;
-  transform: scale(1.02);
-  box-shadow: 0 4px 15px rgba(106, 28, 206, 0.4);
-}
-
-.arrow-icon {
-  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-.relevant-sections-content {
-  max-height: 600px;
-  overflow-y: auto;
-  padding-right: 5px;
-}
-
-/* Smooth scrollbar for relevant sections */
-/* .relevant-sections-content::-webkit-scrollbar {
-  width: 8px;
-} */
-
-.relevant-sections-content::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
-.relevant-sections-content::-webkit-scrollbar-thumb {
-  background: rgba(106, 28, 206, 0.3);
-  border-radius: 4px;
-}
-
-.relevant-sections-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(106, 28, 206, 0.5);
-}
-.relevant-section-btn {
-  background: #fee5ff; /* pink like file-item */
-  border: none;
-  border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 12px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  width: 100%;
-  text-align: left;
-  display: block;
-  transform: translateY(0);
-  color: rgb(85, 84, 84); /* default text color */
-}
-
-.relevant-section-btn:hover {
-  background: #fee5ff;
-   /* same hover effect as file list */
-}
-
-.relevant-section-btn.active {
-  background: #6a1cce; /* purple */
-  color: white;       /* white text */
-  font-weight: 600;
-}
-.no-animate * {
-  transition: none !important;
-}
-
-/* 
-.section-title {
-  font-weight: 600;
-  color: #7b7b7b;
-  font-size: 14px;
-  margin-bottom: 8px;
-}
-
-
-.section-preview {
-  color: #5f5e5e;
-  font-size: 12px;
-  line-height: 1.4;
-} */
-
-.no-sections {
-  text-align: left;
-  color: #888;
-  padding: 20px 0;
-}
-
-.no-sections h4 {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-/* PDF viewer styling */
-#adobe-dc-viewer {
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-/* Insights section */
-.insights-section {
-  margin-top: 20px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.4);
-  border-radius: 12px;
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.circular-btn {
-  background-color: #ff66c4; /* pink */
-  border: none;
-  border-radius: 50%; /* circular */
-  width: 50px;
-  height: 50px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: -8px; /* shift left */
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.circular-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 102, 196, 0.4);
-}
-
-.btn-icon {
-  width: 32px;
-  height: 32px;
-}
-
-/* Selected text display */
-.selected-text {
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 12px;
-  padding: 16px;
-  margin-top: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(5px);
-}
-
-.selected-text strong {
-  color: #333;
-  font-weight: 600;
-}
-
-.selected-text p {
-  margin-top: 8px;
-  color: #555;
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
-/* Upload results */
-.upload-results {
-  margin-top: 16px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 12px;
-  backdrop-filter: blur(5px);
-}
-
-.upload-results ul {
-  list-style: none;
-  margin-top: 8px;
-}
-
-.upload-results li {
-  padding: 4px 0;
-  font-size: 14px;
-}
-
-.upload-results a {
-  color: #5170ff;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.upload-results a:hover {
-  text-decoration: underline;
-}
-
-/* Placeholder text */
-.placeholder-text {
-  text-align: center;
-  color: #666;
-  font-size: 18px;
-  padding: 60px 20px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 16px;
-  backdrop-filter: blur(5px);
-  border: 2px dashed rgba(255, 255, 255, 0.4);
-}
-
-/* File list header */
-.file-list .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.refresh-btn {
-  background-color: #6a1cce;
-  border: none;
-  border-radius: 8px;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.refresh-btn:hover {
-  background-color: #6a1cce;
-}
-
-.refresh-icon {
-  width: 20px;
-  height: 20px;
-}
-
-/* Responsive design */
-@media (max-width: 1024px) {
-  .content-grid {
-  grid-template-columns: 320px 1fr 320px; /* reserve space for relevant sections */
-  gap: 16px; /* a bit smaller gap */
-}
-
-.content-grid.menu-mode {
-  grid-template-columns: 0fr 1fr 320px;
-}
-
-  
-  .sidebar {
-    min-width: unset;
-  }
-  
-  .sidebar.sidebar-hidden {
-    display: none;
-  }
-  
-  .relevant-sections {
-    min-width: unset;
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    bottom: 20px;
-    width: 300px;
-    z-index: 1000;
-  }
-  
-  .main-container {
-    padding: 20px;
-    margin: 10px;
-    min-height: calc(100vh - 20px);
-  }
-  
-  .App {
-    padding: 10px;
-  }
-}
-
-/* Legacy styles (keeping for compatibility) */
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
+// import React, { useState } from "react";
+// import FileUploader from "./components/FileUploader";
+// import FileList from "./components/FileList";
+// import PDFViewer from "./components/PDFViewer";
+// import analysis from "./output/output.json";
+// import "./App.css";
+
+// function App() {
+//   const [selectedUrl, setSelectedUrl] = useState(null);
+//   const [jumpCommand, setJumpCommand] = useState(null);
+//   const [isMenuMode, setIsMenuMode] = useState(false);
+//   const [relevantSections, setRelevantSections] = useState([]);
+//   const [activeSectionIdx, setActiveSectionIdx] = useState(null); // ✅ new state
+//   const [originalPdfUrl, setOriginalPdfUrl] = useState(null);
+
+//   const [allSections] = useState(
+//     analysis.subsection_analysis?.map((sec, idx) => {
+//       const sectionData = analysis.extracted_sections[idx];
+//       return { sec, sectionData, originalIdx: idx };
+//     }) || []
+//   );
+
+//   const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c";
+
+//   const handleSectionClick = (sectionData, sec, idx) => {
+//     const cleanDocName = sectionData.document.replace(/^\/+|\/+$/g, '');
+//     const documentUrl = http://127.0.0.1:8000/files/${cleanDocName};
+//     console.log("Setting URL:", documentUrl);
+//     setSelectedUrl(documentUrl);
+
+//     // ✅ mark this section active
+//     setActiveSectionIdx(idx);
+
+//     setTimeout(() => {
+//       const jumpData = {
+//         page: sectionData.page_number,
+//         text: sec.refined_text?.trim()
+//       };
+//       console.log("Setting jump command:", jumpData);
+//       setJumpCommand(jumpData);
+//     }, 1000);
+//   };
+
+//   const handleTextSelection = (selectedText) => {
+//     if (selectedText && selectedText.trim()) {
+//   const relevant = allSections.filter(({ sec }) => {
+//     const sectionText = sec.refined_text?.toLowerCase() || '';
+//     const searchText = selectedText.toLowerCase();
+//     return sectionText.includes(searchText) || searchText.includes(sectionText.substring(0, 50));
+//   });
+
+//   setRelevantSections(relevant);
+//   setIsMenuMode(true);
+//   setActiveSectionIdx(null);
+
+//   // ✅ Save current PDF as original
+//   if (selectedUrl) setOriginalPdfUrl(selectedUrl);
+// } else {
+//   setIsMenuMode(false);
+//   setRelevantSections([]);
+//   setActiveSectionIdx(null);
+// }
+//   };
+
+//   const toggleMenuMode = () => {
+//     setIsMenuMode(!isMenuMode);
+//   };
+//   const handleRestoreOriginal = () => {
+//   if (originalPdfUrl) {
+//     setSelectedUrl(originalPdfUrl);   // restore original PDF
+//     setActiveSectionIdx(null);        // remove purple highlight
+//   }
+// };
+
+//   return (
+//     <div className="App">
+//       <div className="main-container">
+//         <div className={content-grid ${isMenuMode ? 'menu-mode' : ''}}>
+//           <div className={sidebar ${isMenuMode ? 'sidebar-hidden' : ''}}>
+//             <FileUploader onUploadComplete={(url) => {
+//   setSelectedUrl(url);
+//   setOriginalPdfUrl(url);
+//   setJumpCommand(null);
+//   setActiveSectionIdx(null);
+// }} />
+
+//             <FileList onSelect={(url) => {
+//   setSelectedUrl(url);
+//   setOriginalPdfUrl(url); // ✅ set original PDF here
+//   setJumpCommand(null);
+//   setActiveSectionIdx(null);
+// }} />
+
+//           </div>
+
+//           <div className={pdf-container ${isMenuMode ? 'pdf-expanded' : ''}}>
+//   {selectedUrl ? (
+//     <>
+//       <PDFViewer
+//         fileUrl={selectedUrl}
+//         clientId={ADOBE_CLIENT_ID}
+//         jumpCommand={jumpCommand}
+//         onTextSelection={handleTextSelection}
+//       />
+//       {originalPdfUrl && selectedUrl !== originalPdfUrl && (
+//   <button className="restore-btn" onClick={handleRestoreOriginal}>
+//     Restore Original PDF
+//   </button>
+// )}
+
+//     </>
+//   ) : (
+//     <div className="placeholder-text">
+//       No PDF selected. Upload or choose from the list.
+//     </div>
+//   )}
+// </div>
+
+//           <div className={relevant-sections ${isMenuMode ? 'relevant-sections-visible' : ''}}>
+//             <div className="relevant-sections-header">
+//               <h3>Relevant Sections</h3>
+//               <button className="toggle-menu-btn" onClick={toggleMenuMode}>
+//                 <span className="arrow-icon">{'←'}</span>
+//               </button>
+//             </div>
+
+//             <div className="relevant-sections-content">
+//               {relevantSections.length > 0 ? (
+//                 relevantSections.map(({ sec, sectionData, originalIdx }) => (
+//                   <button
+//                     key={originalIdx}
+//                     className={relevant-section-btn ${activeSectionIdx === originalIdx ? "active" : ""}}
+//                     onClick={() => handleSectionClick(sectionData, sec, originalIdx)}
+//                   >
+//                     <div className="section-title">{sectionData.section_title}</div>
+//                     <div className="section-preview">
+//                       {sec.refined_text?.substring(0, 100)}...
+//                     </div>
+//                   </button>
+//                 ))
+//               ) : (
+//                 <div className="no-sections">
+//                   {allSections.length > 0 ? (
+//                     <>
+//                       {/* <h4 style={{ color: '#6a1cce', marginBottom: '15px' }}>All Document Sections</h4> */}
+//                       {allSections.map(({ sec, sectionData, originalIdx }) => (
+//                         <button
+//                           key={originalIdx}
+//                           className={relevant-section-btn ${activeSectionIdx === originalIdx ? "active" : ""}}
+//                           onClick={() => handleSectionClick(sectionData, sec, originalIdx)}
+//                         >
+//                           <div className="section-title">{sectionData.section_title}</div>
+//                           <div className="section-preview">
+//                             {sec.refined_text?.substring(0, 100)}...
+//                           </div>
+//                         </button>
+//                       ))}
+//                     </>
+//                   ) : (
+//                     "Select text in the PDF to see relevant sections"
+//                   )}
+//                 </div>
+//               )}
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default App;
+// import React, { useState, useEffect } from "react";
+// import FileUploader from "./components/FileUploader";
+// import FileList from "./components/FileList";
+// import PDFViewer from "./components/PDFViewer";
+// import analysis from "./output/output.json";
+// import "./App.css";
+
+// function App() {
+//   const [selectedUrl, setSelectedUrl] = useState(null);
+//   const [jumpCommand, setJumpCommand] = useState(null);
+//   const [isMenuMode, setIsMenuMode] = useState(false);
+//   const [relevantSections, setRelevantSections] = useState([]);
+//   const [activeSectionIdx, setActiveSectionIdx] = useState(null);
+//   const [originalPdfUrl, setOriginalPdfUrl] = useState(null);
+
+//   const [allSections] = useState(
+//     analysis.subsection_analysis?.map((sec, idx) => {
+//       const sectionData = analysis.extracted_sections[idx];
+//       return { sec, sectionData, originalIdx: idx };
+//     }) || []
+//   );
+
+//   const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c";
+
+//   // Cleanup on window close
+//   useEffect(() => {
+//     const handleBeforeUnload = () => {
+//       console.log("Sending cleanup request...");
+//       try {
+//         const success = navigator.sendBeacon(
+//           "http://127.0.0.1:8000/cleanup-on-exit"
+//         );
+//         console.log("Cleanup request sent successfully:", success);
+//       } catch (e) {
+//         console.error("sendBeacon failed, falling back to fetch:", e);
+//         fetch("http://127.0.0.1:8000/cleanup-on-exit", { method: "POST" })
+//           .then(() => console.log("Cleanup request sent via fetch."))
+//           .catch((err) => console.error("Fetch cleanup request failed:", err));
+//       }
+//     };
+//     window.addEventListener("beforeunload", handleBeforeUnload);
+//     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+//   }, []);
+
+//   const handleSectionClick = (sectionData, sec, idx) => {
+//     const cleanDocName = sectionData.document.replace(/^\/+|\/+$/g, "");
+//     const documentUrl = http://127.0.0.1:8000/files/${cleanDocName};
+//     setSelectedUrl(documentUrl);
+//     setActiveSectionIdx(idx);
+
+//     setTimeout(() => {
+//       setJumpCommand({
+//         page: sectionData.page_number,
+//         text: sec.refined_text?.trim(),
+//       });
+//     }, 1000);
+//   };
+
+//   const handleTextSelection = (selectedText) => {
+//     if (selectedText && selectedText.trim()) {
+//       const relevant = allSections.filter(({ sec }) => {
+//         const sectionText = sec.refined_text?.toLowerCase() || "";
+//         const searchText = selectedText.toLowerCase();
+//         return (
+//           sectionText.includes(searchText) ||
+//           searchText.includes(sectionText.substring(0, 50))
+//         );
+//       });
+
+//       setRelevantSections(relevant);
+//       setIsMenuMode(true);
+//       setActiveSectionIdx(null);
+
+//       if (selectedUrl) setOriginalPdfUrl(selectedUrl);
+//     } else {
+//       setIsMenuMode(false);
+//       setRelevantSections([]);
+//       setActiveSectionIdx(null);
+//     }
+//   };
+
+//   const toggleMenuMode = () => setIsMenuMode(!isMenuMode);
+
+//   const handleRestoreOriginal = () => {
+//     if (originalPdfUrl) {
+//       setSelectedUrl(originalPdfUrl);
+//       setActiveSectionIdx(null);
+//     }
+//   };
+
+//   return (
+//     <div className="App">
+//       <div className="main-container">
+//         <div className={content-grid ${isMenuMode ? "menu-mode" : ""}}>
+//           {/* Sidebar */}
+//           <div className={sidebar ${isMenuMode ? "sidebar-hidden" : ""}}>
+//             <FileUploader
+//               onUploadComplete={(url) => {
+//                 setSelectedUrl(url);
+//                 setOriginalPdfUrl(url);
+//                 setJumpCommand(null);
+//                 setActiveSectionIdx(null);
+//               }}
+//             />
+//             <FileList
+//               onSelect={(url) => {
+//                 setSelectedUrl(url);
+//                 setOriginalPdfUrl(url);
+//                 setJumpCommand(null);
+//                 setActiveSectionIdx(null);
+//               }}
+//             />
+//           </div>
+
+//           {/* PDF Viewer */}
+//           <div className={`pdf-container ${isMenuMode ? "pdf-expanded" : ""}`}>
+//             {selectedUrl ? (
+//               <>
+//                 <PDFViewer
+//                   fileUrl={selectedUrl}
+//                   clientId={ADOBE_CLIENT_ID}
+//                   jumpCommand={jumpCommand}
+//                   onTextSelection={handleTextSelection}
+//                 />
+//                 {originalPdfUrl && selectedUrl !== originalPdfUrl && (
+//                   <button
+//                     className="restore-btn"
+//                     onClick={handleRestoreOriginal}
+//                   >
+//                     Restore Original PDF
+//                   </button>
+//                 )}
+//               </>
+//             ) : (
+//               <div className="placeholder-text">
+//                 No PDF selected. Upload or choose from the list.
+//               </div>
+//             )}
+//           </div>
+
+//           {/* Relevant Sections */}
+//           <div
+//             className={`relevant-sections ${
+//               isMenuMode ? "relevant-sections-visible" : ""
+//             }`}
+//           >
+//             <div className="relevant-sections-header">
+//               <h3>Relevant Sections</h3>
+//               <button className="toggle-menu-btn" onClick={toggleMenuMode}>
+//                 <span className="arrow-icon">{'←'}</span>
+//               </button>
+//             </div>
+
+//             <div className="relevant-sections-content">
+//               {relevantSections.length > 0
+//                 ? relevantSections.map(({ sec, sectionData, originalIdx }) => (
+//                     <button
+//                       key={originalIdx}
+//                       className={`relevant-section-btn ${
+//                         activeSectionIdx === originalIdx ? "active" : ""
+//                       }`}
+//                       onClick={() =>
+//                         handleSectionClick(sectionData, sec, originalIdx)
+//                       }
+//                     >
+//                       <div className="section-title">
+//                         {sectionData.section_title}
+//                       </div>
+//                       <div className="section-preview">
+//                         {sec.refined_text?.substring(0, 100)}...
+//                       </div>
+//                     </button>
+//                   ))
+//                 : allSections.length > 0
+//                 ? allSections.map(({ sec, sectionData, originalIdx }) => (
+//                     <button
+//                       key={originalIdx}
+//                       className={`relevant-section-btn ${
+//                         activeSectionIdx === originalIdx ? "active" : ""
+//                       }`}
+//                       onClick={() =>
+//                         handleSectionClick(sectionData, sec, originalIdx)
+//                       }
+//                     >
+//                       <div className="section-title">
+//                         {sectionData.section_title}
+//                       </div>
+//                       <div className="section-preview">
+//                         {sec.refined_text?.substring(0, 100)}...
+//                       </div>
+//                     </button>
+//                   ))
+//                 : "Select text in the PDF to see relevant sections"}
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default App;
+// import React, { useState, useEffect } from "react";
+// import FileUploader from "./components/FileUploader";
+// import FileList from "./components/FileList";
+// import PDFViewer from "./components/PDFViewer";
+// import analysis from "./output/output.json";
+// import "./App.css";
+
+// function App() {
+//   const [selectedUrl, setSelectedUrl] = useState(null);
+//   const [jumpCommand, setJumpCommand] = useState(null);
+//   const [isMenuMode, setIsMenuMode] = useState(false);
+//   const [relevantSections, setRelevantSections] = useState([]);
+//   const [activeSectionIdx, setActiveSectionIdx] = useState(null);
+//   const [originalPdfUrl, setOriginalPdfUrl] = useState(null);
+
+//   const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c";
+
+//   // Map subsection_analysis to extracted_sections correctly
+//   const allSections = (analysis.subsection_analysis || []).map((sec, idx) => {
+//     const sectionData = analysis.extracted_sections[idx];
+//     return { sec, sectionData, originalIdx: idx };
+//   });
+
+//   // Cleanup on window close
+//   useEffect(() => {
+//     const handleBeforeUnload = () => {
+//       try {
+//         navigator.sendBeacon("/cleanup-on-exit");
+//       } catch (e) {
+//         fetch("/cleanup-on-exit", { method: "POST" });
+//       }
+//     };
+//     window.addEventListener("beforeunload", handleBeforeUnload);
+//     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+//   }, []);
+
+//   const handleSectionClick = (sectionData, sec, idx) => {
+//     // Build proper URL for the PDF
+//     const documentUrl = sectionData.document.startsWith("http")
+//       ? sectionData.document
+//       : ${window.location.origin}/files/${sectionData.document.replace(/^\/+|\/+$/g, "")};
+
+//     setSelectedUrl(documentUrl);
+//     setActiveSectionIdx(idx);
+
+//     // setTimeout(() => {
+//     //   setJumpCommand({
+//     //     page: sectionData.page_number,
+//     //     text: sec.refined_text?.trim(),
+//     //   });
+//     // }, 1000);
+//     setTimeout(() => {
+//                         const jumpData = {
+//                           page: sectionData.page_number,
+//                           text: sec.refined_text?.trim()
+//                         };
+//                         console.log("Setting jump command:", jumpData);
+//                         setJumpCommand(jumpData);
+//                       }, 1000);
+//   };
+
+//   const handleTextSelection = (selectedText) => {
+//     if (selectedText && selectedText.trim()) {
+//       const relevant = allSections.filter(({ sec }) => {
+//         const sectionText = sec.refined_text?.toLowerCase() || "";
+//         const searchText = selectedText.toLowerCase();
+//         return (
+//           sectionText.includes(searchText) ||
+//           searchText.includes(sectionText.substring(0, 50))
+//         );
+//       });
+
+//       setRelevantSections(relevant);
+//       setIsMenuMode(true);
+//       setActiveSectionIdx(null);
+
+//       if (selectedUrl) setOriginalPdfUrl(selectedUrl);
+//     } else {
+//       setIsMenuMode(false);
+//       setRelevantSections([]);
+//       setActiveSectionIdx(null);
+//     }
+//   };
+
+//   const toggleMenuMode = () => setIsMenuMode(!isMenuMode);
+
+//   const handleRestoreOriginal = () => {
+//     if (originalPdfUrl) {
+//       setSelectedUrl(originalPdfUrl);
+//       setActiveSectionIdx(null);
+//     }
+//   };
+
+//   return (
+//     <div className="App">
+//       <div className="main-container">
+//         <div className={content-grid ${isMenuMode ? "menu-mode" : ""}}>
+//           {/* Sidebar */}
+//           <div className={sidebar ${isMenuMode ? "sidebar-hidden" : ""}}>
+//             <FileUploader
+//               onUploadComplete={(url) => {
+//                 setSelectedUrl(url);
+//                 setOriginalPdfUrl(url);
+//                 setJumpCommand(null);
+//                 setActiveSectionIdx(null);
+//               }}
+//             />
+//             <FileList
+//               onSelect={(url) => {
+//                 setSelectedUrl(url);
+//                 setOriginalPdfUrl(url);
+//                 setJumpCommand(null);
+//                 setActiveSectionIdx(null);
+//               }}
+//             />
+//           </div>
+
+//           {/* PDF Viewer */}
+//           <div className={`pdf-container ${isMenuMode ? "pdf-expanded" : ""}`}>
+//             {selectedUrl ? (
+//               <>
+//                 <PDFViewer
+//                   fileUrl={selectedUrl}
+//                   clientId={ADOBE_CLIENT_ID}
+//                   jumpCommand={jumpCommand}
+//                   onTextSelection={handleTextSelection}
+//                 />
+//                 {originalPdfUrl && selectedUrl !== originalPdfUrl && (
+//                   <button
+//                     className="restore-btn"
+//                     onClick={handleRestoreOriginal}
+//                   >
+//                     Restore Original PDF
+//                   </button>
+//                 )}
+//               </>
+//             ) : (
+//               <div className="placeholder-text">
+//                 No PDF selected. Upload or choose from the list.
+//               </div>
+//             )}
+//           </div>
+
+//           {/* Relevant Sections */}
+//           <div
+//             className={`relevant-sections ${
+//               isMenuMode ? "relevant-sections-visible" : ""
+//             }`}
+//           >
+//             <div className="relevant-sections-header">
+//               <h3>Relevant Sections</h3>
+//               <button className="toggle-menu-btn" onClick={toggleMenuMode}>
+//                 <span className="arrow-icon">{'←'}</span>
+//               </button>
+//             </div>
+
+//             <div className="relevant-sections-content">
+//               {relevantSections.length > 0
+//                 ? relevantSections.map(({ sec, sectionData, originalIdx }) => (
+//                     <button
+//                       key={originalIdx}
+//                       className={`relevant-section-btn ${
+//                         activeSectionIdx === originalIdx ? "active" : ""
+//                       }`}
+//                       onClick={() =>
+//                         handleSectionClick(sectionData, sec, originalIdx)
+//                       }
+//                     >
+//                       <div className="section-title">
+//                         {sectionData.section_title}
+//                       </div>
+//                       <div className="section-preview">
+//                         {sec.refined_text?.substring(0, 100)}...
+//                       </div>
+//                     </button>
+//                   ))
+//                 : allSections.length > 0
+//                 ? allSections.map(({ sec, sectionData, originalIdx }) => (
+//                     <button
+//                       key={originalIdx}
+//                       className={`relevant-section-btn ${
+//                         activeSectionIdx === originalIdx ? "active" : ""
+//                       }`}
+//                       onClick={() =>
+//                         handleSectionClick(sectionData, sec, originalIdx)
+//                       }
+//                     >
+//                       <div className="section-title">
+//                         {sectionData.section_title}
+//                       </div>
+//                       <div className="section-preview">
+//                         {sec.refined_text?.substring(0, 100)}...
+//                       </div>
+//                     </button>
+//                   ))
+//                 : "Select text in the PDF to see relevant sections"}
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default App;
+import React, { useState, useEffect } from "react";
+import FileUploader from "./components/FileUploader";
+import FileList from "./components/FileList";
+import PDFViewer from "./components/PDFViewer";
+import { fetchInsights } from "./components/useInsights"; // Import fetchInsights
+import analysis from "./output/output.json";
+// import insightIcon from "./insight-icon.png";
+
+import "./App.css";
+
+function App() {
+  const [selectedUrl, setSelectedUrl] = useState(null);
+  const [jumpCommand, setJumpCommand] = useState(null);
+  const [isMenuMode, setIsMenuMode] = useState(false);
+  const [relevantSections, setRelevantSections] = useState([]);
+  const [activeSectionIdx, setActiveSectionIdx] = useState(null);
+  const [originalPdfUrl, setOriginalPdfUrl] = useState(null);
+  const [selectedText, setSelectedText] = useState(""); // Add selectedText state
+  const [insight, setInsight] = useState(""); // Add insight state
+  const [dynamicSections, setDynamicSections] = useState(null); // Add dynamic sections state
+  const [isNavigatingToSection, setIsNavigatingToSection] = useState(false); // Flag to prevent re-processing during navigation
+  const [pdfViewerKey, setPdfViewerKey] = useState(0); // Stable key for PDF viewer
+  const [isGeneratingEmbeddings, setIsGeneratingEmbeddings] = useState(false); // Loading state for embeddings
+
+  const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c";
+
+  // Use dynamic sections if available, otherwise fall back to static analysis
+  const allSections = dynamicSections
+    ? (dynamicSections.subsection_analysis || []).map((sec, idx) => {
+        const sectionData = dynamicSections.extracted_sections[idx];
+        return { sec, sectionData, originalIdx: idx };
+      })
+    : (analysis.subsection_analysis || []).map((sec, idx) => {
+        const sectionData = analysis.extracted_sections[idx];
+        return { sec, sectionData, originalIdx: idx };
+      });
+
+  // Cleanup on window close
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      try {
+        navigator.sendBeacon("/cleanup-on-exit");
+      } catch (e) {
+        fetch("/cleanup-on-exit", { method: "POST" });
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  const handleSectionClick = (sectionData, sec, idx) => {
+    // Set navigation flag to prevent re-processing
+    setIsNavigatingToSection(true);
+
+    // Build proper URL for the PDF
+    const documentUrl = sectionData.document.startsWith("http")
+      ? sectionData.document
+      : `${window.location.origin}/files/${sectionData.document.replace(
+          /^\/+|\/+$/g,
+          ""
+        )}`;
+
+    setSelectedUrl(documentUrl);
+    setActiveSectionIdx(idx);
+
+    setTimeout(() => {
+      const jumpData = {
+        page: sectionData.page_number,
+        text: sec.refined_text?.trim(),
+      };
+      console.log("Setting jump command:", jumpData);
+      setJumpCommand(jumpData);
+
+      // Clear navigation flag after jump is set
+      setTimeout(() => setIsNavigatingToSection(false), 2000);
+    }, 1000);
+  };
+
+  // Handle response from save-input endpoint (now async)
+  const handleSaveInputResponse = (responseData) => {
+    if (responseData.status === "processing") {
+      console.log("Analysis started in background, polling for results...");
+      // Start polling for results
+      pollProcessingStatus();
+    } else if (responseData.analysis_results) {
+      // Handle immediate results (fallback)
+      updateDynamicSections(responseData.analysis_results);
+    }
+  };
+
+  // Poll processing status for async results
+  const pollProcessingStatus = async () => {
+    const maxAttempts = 60; // Poll for up to 60 seconds
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        const response = await fetch("/processing-status");
+        const status = await response.json();
+
+        console.log("Processing status:", status);
+
+        if (status.status === "completed" && status.result) {
+          updateDynamicSections(status.result);
+          return;
+        } else if (status.status === "error") {
+          console.error("Processing failed:", status.error);
+          return;
+        } else if (status.is_processing && attempts < maxAttempts) {
+          attempts++;
+          setTimeout(poll, 1000); // Poll every second
+        }
+      } catch (error) {
+        console.error("Error polling status:", error);
+      }
+    };
+
+    poll();
+  };
+
+  // Update dynamic sections with analysis results
+  const updateDynamicSections = (analysisResults) => {
+    console.log("Received dynamic analysis results:", analysisResults);
+    setDynamicSections(analysisResults);
+
+    // Update relevant sections with the new dynamic data
+    const newAllSections = (analysisResults.subsection_analysis || []).map(
+      (sec, idx) => {
+        const sectionData = analysisResults.extracted_sections[idx];
+        return { sec, sectionData, originalIdx: idx };
+      }
+    );
+
+    // Filter relevant sections based on the selected text
+    const relevant = newAllSections.filter(({ sec }) => {
+      const sectionText = sec.refined_text?.toLowerCase() || "";
+      const searchText = selectedText.toLowerCase();
+
+      const searchWords = searchText
+        .split(/\s+/)
+        .filter((word) => word.length > 2);
+
+      const hasMatchingWords = searchWords.some((word) =>
+        sectionText.includes(word)
+      );
+
+      const hasDirectMatch =
+        sectionText.includes(searchText) ||
+        searchText.includes(sectionText.substring(0, 50));
+
+      return hasMatchingWords || hasDirectMatch;
+    });
+
+    setRelevantSections(relevant);
+    setIsMenuMode(true);
+  };
+
+  const handleTextSelection = (selectedText) => {
+    setSelectedText(selectedText); // Store selected text
+
+    if (selectedText && selectedText.trim()) {
+      // Set the current PDF as original when text is selected (this enables "Restore" functionality)
+      if (selectedUrl) {
+        setOriginalPdfUrl(selectedUrl);
+      }
+
+      // The actual filtering will happen in handleSaveInputResponse after backend processing
+      // For now, just show that text is selected
+      setIsMenuMode(true);
+      setActiveSectionIdx(null);
+    } else {
+      setIsMenuMode(false);
+      setRelevantSections([]);
+      setActiveSectionIdx(null);
+    }
+  };
+
+  const handleInsights = async () => {
+    if (!selectedText) {
+      alert("Please select text in the PDF before generating insights.");
+      return;
+    }
+    const result = await fetchInsights(selectedText);
+    setInsight(result);
+  };
+
+  const toggleMenuMode = () => setIsMenuMode(!isMenuMode);
+
+  const handleRestoreOriginal = () => {
+    if (originalPdfUrl) {
+      setSelectedUrl(originalPdfUrl);
+      setActiveSectionIdx(null);
+      setJumpCommand(null);
+      // Keep selectedText and relevantSections so user can continue working with them
+    }
+  };
+
+  // Generate embeddings after upload
+  const generateEmbeddings = async () => {
+    setIsGeneratingEmbeddings(true);
+    try {
+      const response = await fetch("/generate-embeddings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await response.json();
+      console.log("Embeddings generated:", data);
+      return data;
+    } catch (error) {
+      console.error("Error generating embeddings:", error);
+      return null;
+    } finally {
+      setIsGeneratingEmbeddings(false);
+    }
+  };
+
+  return (
+    <div className="App">
+      <div className="main-container">
+        <div className={`content-grid ${isMenuMode ? "menu-mode" : ""}`}>
+          {/* Sidebar */}
+          <div className={`sidebar ${isMenuMode ? "sidebar-hidden" : ""}`}>
+            <FileUploader
+              onUploadComplete={async (url) => {
+                setPdfViewerKey((prev) => prev + 1); // Force re-mount for new upload
+                setSelectedUrl(url);
+                setOriginalPdfUrl(url); // Set as original when first uploaded
+                setJumpCommand(null);
+                setActiveSectionIdx(null);
+                // Clear text selection and relevant sections when uploading new PDF
+                setSelectedText("");
+                setRelevantSections([]);
+                setDynamicSections(null); // Clear dynamic sections
+                setIsMenuMode(false);
+
+                // Generate embeddings after upload
+                await generateEmbeddings();
+              }}
+            />
+
+            {/* Loading indicator for embeddings generation */}
+            {isGeneratingEmbeddings && (
+              <div
+                className="upload-section"
+                style={{ textAlign: "center", padding: "20px" }}
+              >
+                <div
+                  style={{
+                    color: "#6a1cce",
+                    fontWeight: "600",
+                    marginBottom: "10px",
+                  }}
+                >
+                  🔄 Processing PDFs...
+                </div>
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#666",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Generating embeddings for faster analysis
+                </div>
+                <div style={{ fontSize: "11px", color: "#999" }}>
+                  This may take a moment for multiple files
+                </div>
+              </div>
+            )}
+
+            <FileList
+              onSelect={(url) => {
+                // Only re-mount if URL actually changed
+                if (url !== selectedUrl) {
+                  setPdfViewerKey((prev) => prev + 1); // Force re-mount for new PDF
+                }
+
+                // Clear text selection and relevant sections when switching PDFs
+                setSelectedText("");
+                setRelevantSections([]);
+                setDynamicSections(null); // Clear dynamic sections
+                setIsMenuMode(false);
+
+                // Now switch to the new PDF
+                setSelectedUrl(url);
+                setOriginalPdfUrl(url); // This becomes the new starting point
+                setJumpCommand(null);
+                setActiveSectionIdx(null);
+              }}
+            />
+          </div>
+
+          {/* PDF Viewer */}
+          <div className={`pdf-container ${isMenuMode ? "pdf-expanded" : ""}`}>
+            {selectedUrl ? (
+              <>
+                <PDFViewer
+                  key={pdfViewerKey} // Use stable key that only changes when truly switching PDFs
+                  fileUrl={selectedUrl}
+                  clientId={ADOBE_CLIENT_ID}
+                  jumpCommand={jumpCommand}
+                  onTextSelection={handleTextSelection}
+                  onSaveInputResponse={handleSaveInputResponse} // Pass callback for save-input response
+                  selectedText={selectedText} // Pass selectedText as prop
+                  isNavigatingToSection={isNavigatingToSection} // Pass navigation flag
+                />
+                {originalPdfUrl && selectedUrl !== originalPdfUrl && (
+                  <button
+                    className="restore-btn"
+                    onClick={handleRestoreOriginal}
+                  >
+                    Restore Original PDF
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="placeholder-text">
+                No PDF selected. Upload or choose from the list.
+              </div>
+            )}
+          </div>
+
+          {/* Relevant Sections */}
+          <div
+            className={`relevant-sections ${
+              isMenuMode ? "relevant-sections-visible" : ""
+            }`}
+          >
+            <div className="relevant-sections-header">
+              <h3>Relevant Sections</h3>
+              <button
+                onClick={handleInsights}
+                disabled={!selectedText}
+                className="circular-btn"
+              >
+                {/* <img src={insightIcon} alt="Insights" className="btn-icon" /> */}
+              </button>
+
+              <button className="toggle-menu-btn" onClick={toggleMenuMode}>
+                <span className="arrow-icon">{"←"}</span>
+              </button>
+            </div>
+
+            {/* Display Insights */}
+            {insight && (
+              <div
+                style={{
+                  margin: "12px",
+                  padding: "12px",
+                  background: "rgba(255,255,255,0.8)",
+                  borderRadius: "8px",
+                  backdropFilter: "blur(5px)",
+                  border: "1px solid #e0e0e0",
+                }}
+              >
+                <strong>💡 Insights:</strong>
+                <p
+                  style={{
+                    whiteSpace: "pre-wrap",
+                    marginTop: 8,
+                    fontSize: "14px",
+                  }}
+                >
+                  {insight}
+                </p>
+              </div>
+            )}
+
+            <div className="relevant-sections-content">
+              {relevantSections.length > 0
+                ? relevantSections.map(({ sec, sectionData, originalIdx }) => (
+                    <button
+                      key={originalIdx}
+                      className={`relevant-section-btn ${
+                        activeSectionIdx === originalIdx ? "active" : ""
+                      }`}
+                      onClick={() =>
+                        handleSectionClick(sectionData, sec, originalIdx)
+                      }
+                    >
+                      <div className="section-title">
+                        {sectionData.section_title}
+                      </div>
+                      <div className="section-preview">
+                        {sec.refined_text?.substring(0, 100)}...
+                      </div>
+                    </button>
+                  ))
+                : allSections.length > 0
+                ? allSections.map(({ sec, sectionData, originalIdx }) => (
+                    <button
+                      key={originalIdx}
+                      className={`relevant-section-btn ${
+                        activeSectionIdx === originalIdx ? "active" : ""
+                      }`}
+                      onClick={() =>
+                        handleSectionClick(sectionData, sec, originalIdx)
+                      }
+                    >
+                      <div className="section-title">
+                        {sectionData.section_title}
+                      </div>
+                      <div className="section-preview">
+                        {sec.refined_text?.substring(0, 100)}...
+                      </div>
+                    </button>
+                  ))
+                : "Select text in the PDF to see relevant sections"}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;

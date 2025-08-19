@@ -3,7 +3,7 @@ export async function fetchInsights(selectedText) {
   if (!selectedText) return null;
 
   try {
-    const response = await fetch("http://localhost:8000/insights", {
+    const response = await fetch("/insights", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: selectedText }),

@@ -1,4 +1,3 @@
-
 // import React, { useEffect, useRef, useState } from "react";
 // import { fetchInsights } from "./useInsights";
 
@@ -108,14 +107,14 @@
 //         const result = await apis.getSelectedContent();
 //         if (result && result.data && result.data !== selectedText) {
 //           setSelectedText(result.data);
-          
+
 //           // Notify parent component about text selection
 //           if (onTextSelection) {
 //             onTextSelection(result.data);
 //           }
 
 //           // Send to backend
-//           fetch("http://127.0.0.1:8000/save-input", {
+//           fetch("/save-input", {
 //             method: "POST",
 //             headers: { "Content-Type": "application/json" },
 //             body: JSON.stringify({
@@ -241,11 +240,18 @@
 
 // export default PDFViewer;
 
-
 import React, { useEffect, useRef, useState } from "react";
 import { fetchPodcast } from "./fetchPodcast";
 
-function PDFViewer({ fileUrl, clientId, jumpCommand, onTextSelection, selectedText }) {
+function PDFViewer({
+  fileUrl,
+  clientId,
+  jumpCommand,
+  onTextSelection,
+  onSaveInputResponse,
+  selectedText,
+  isNavigatingToSection,
+}) {
   const containerRef = useRef(null);
   const [adobeViewer, setAdobeViewer] = useState(null);
   const [apis, setApis] = useState(null);
@@ -284,9 +290,14 @@ function PDFViewer({ fileUrl, clientId, jumpCommand, onTextSelection, selectedTe
         return;
       }
 
+      // Force cleanup of previous viewer instance
       if (containerRef.current) {
         containerRef.current.innerHTML = "";
       }
+
+      // Reset viewer state
+      setAdobeViewer(null);
+      setApis(null);
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -312,19 +323,7 @@ function PDFViewer({ fileUrl, clientId, jumpCommand, onTextSelection, selectedTe
         await apis.enableTextSelection(true);
         setApis(apis);
 
-        if (jumpCommand) {
-          try {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            if (jumpCommand.page) {
-              await apis.gotoLocation(jumpCommand.page - 1);
-            }
-            if (jumpCommand.text) {
-              await apis.search(jumpCommand.text);
-            }
-          } catch (error) {
-            console.error("Error executing jump command:", error);
-          }
-        }
+        // Jump commands are now handled in a separate useEffect
       } catch (error) {
         console.error("Error initializing PDF viewer:", error);
       }
@@ -338,7 +337,62 @@ function PDFViewer({ fileUrl, clientId, jumpCommand, onTextSelection, selectedTe
       script.onload = initViewer;
       document.body.appendChild(script);
     }
-  }, [fileUrl, clientId, jumpCommand]);
+
+    // Cleanup function to ensure proper disposal when fileUrl changes
+    return () => {
+      if (containerRef.current) {
+        containerRef.current.innerHTML = "";
+      }
+      setAdobeViewer(null);
+      setApis(null);
+    };
+  }, [fileUrl, clientId]);
+
+  // Handle jump commands when they change (for clicking relevant sections)
+  useEffect(() => {
+    if (!jumpCommand || !apis) return;
+
+    const executeJump = async () => {
+      try {
+        console.log("Executing jump command:", jumpCommand);
+
+        if (jumpCommand.page) {
+          const pageNumber = parseInt(jumpCommand.page, 10);
+          if (!isNaN(pageNumber)) {
+            const zeroBasedPage = Math.max(0, pageNumber - 1);
+            console.log(
+              `Jumping to page ${pageNumber} (zero-based: ${zeroBasedPage})`
+            );
+            await apis.gotoLocation(zeroBasedPage);
+            await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for page load
+          }
+        }
+
+        if (jumpCommand.text) {
+          try {
+            console.log("Searching for text:", jumpCommand.text);
+            // Try to search for a shorter excerpt if the text is very long
+            const searchText =
+              jumpCommand.text.length > 50
+                ? jumpCommand.text.substring(0, 50)
+                : jumpCommand.text;
+
+            await apis.search(searchText, {
+              matchCase: false,
+              wholeWord: false,
+            });
+            console.log("Search completed successfully");
+          } catch (searchError) {
+            console.error("Error searching for text:", searchError);
+          }
+        }
+      } catch (error) {
+        console.error("Error executing jump command:", error);
+      }
+    };
+
+    executeJump();
+  }, [jumpCommand, apis]);
 
   // Monitor text selection and notify parent
   useEffect(() => {
@@ -352,18 +406,30 @@ function PDFViewer({ fileUrl, clientId, jumpCommand, onTextSelection, selectedTe
             onTextSelection(result.data);
           }
 
-          fetch("http://127.0.0.1:8000/save-input", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              persona: "default_persona",
-              job: "default_job",
-              selected_text: result.data,
-            }),
-          })
-            .then((res) => res.json())
-            .then((data) => console.log("Saved to backend:", data))
-            .catch((err) => console.error("Error saving selected text:", err));
+          // Only call save-input if we're not navigating to a section
+          if (!isNavigatingToSection) {
+            fetch("/save-input", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                persona: "default_persona",
+                job: "default_job",
+                selected_text: result.data,
+              }),
+            })
+              .then((res) => res.json())
+              .then((data) => {
+                console.log("Saved to backend:", data);
+                if (onSaveInputResponse) {
+                  onSaveInputResponse(data);
+                }
+              })
+              .catch((error) => {
+                console.error("Error saving input:", error);
+              });
+          } else {
+            console.log("Skipping save-input call during section navigation");
+          }
         }
       } catch (err) {
         console.error("Error polling selection:", err);
@@ -434,7 +500,10 @@ function PDFViewer({ fileUrl, clientId, jumpCommand, onTextSelection, selectedTe
             }}
           >
             <strong>🎧 Podcast:</strong>
-            <audio controls style={{ display: "block", marginTop: 8, width: "100%" }}>
+            <audio
+              controls
+              style={{ display: "block", marginTop: 8, width: "100%" }}
+            >
               <source src={podcast} type="audio/mpeg" />
               Your browser does not support the audio element.
             </audio>
