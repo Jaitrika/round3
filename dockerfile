@@ -2,6 +2,10 @@
 # Stage 1: Build React frontend
 FROM node:18-alpine AS frontend-builder
 
+# Accept build argument for Adobe API key
+ARG REACT_APP_ADOBE_EMBED_API_KEY
+ENV REACT_APP_ADOBE_EMBED_API_KEY=$REACT_APP_ADOBE_EMBED_API_KEY
+
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci
