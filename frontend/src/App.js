@@ -20,8 +20,6 @@
 //     }) || []
 //   );
 
-//   const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c";
-
 //   const handleSectionClick = (sectionData, sec, idx) => {
 //     const cleanDocName = sectionData.document.replace(/^\/+|\/+$/g, '');
 //     const documentUrl = http://127.0.0.1:8000/files/${cleanDocName};
@@ -191,8 +189,6 @@
 //       return { sec, sectionData, originalIdx: idx };
 //     }) || []
 //   );
-
-//   const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c";
 
 //   // Cleanup on window close
 //   useEffect(() => {
@@ -386,8 +382,6 @@
 //   const [relevantSections, setRelevantSections] = useState([]);
 //   const [activeSectionIdx, setActiveSectionIdx] = useState(null);
 //   const [originalPdfUrl, setOriginalPdfUrl] = useState(null);
-
-//   const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c";
 
 //   // Map subsection_analysis to extracted_sections correctly
 //   const allSections = (analysis.subsection_analysis || []).map((sec, idx) => {
@@ -605,7 +599,14 @@ function App() {
   const [insightsSuccess, setInsightsSuccess] = useState(false); // Success state for insights
   const [podcastSuccess, setPodcastSuccess] = useState(false); // Success state for podcast
 
-  const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c";
+  const ADOBE_CLIENT_ID = process.env.REACT_APP_ADOBE_EMBED_API_KEY;
+
+  // Check if Adobe API key is provided
+  if (!ADOBE_CLIENT_ID) {
+    console.error(
+      "REACT_APP_ADOBE_EMBED_API_KEY environment variable is required"
+    );
+  }
 
   // Only use dynamic sections (no default/static sections)
   const allSections = dynamicSections
@@ -636,6 +637,29 @@ function App() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
+  // Check embeddings status on app load
+  useEffect(() => {
+    const checkEmbeddingsOnLoad = async () => {
+      // Give the app a moment to load, then check embeddings
+      setTimeout(async () => {
+        try {
+          const response = await fetch("/list-files/");
+          const data = await response.json();
+
+          if (data.files && data.files.length > 0) {
+            console.log("PDFs found on load, checking embeddings status...");
+            await ensureEmbeddingsReady();
+          }
+        } catch (error) {
+          console.error("Error checking files on load:", error);
+        }
+      }, 1000); // Wait 1 second after app loads
+    };
+
+    checkEmbeddingsOnLoad();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ensureEmbeddingsReady is defined in the same component, safe to omit
+
   const handleSectionClick = (sectionData, sec, idx) => {
     // Set navigation flag to prevent re-processing
     setIsNavigatingToSection(true);
@@ -650,6 +674,9 @@ function App() {
 
     setSelectedUrl(documentUrl);
     setActiveSectionIdx(idx);
+
+    // Clear previous insights when navigating to a different section
+    setInsight("");
 
     setTimeout(() => {
       const jumpData = {
@@ -791,13 +818,15 @@ function App() {
       setIsMenuMode(true);
       setActiveSectionIdx(null);
 
-      // Clear previous sections and show loading state
+      // Clear previous sections and insights when text selection changes
       setRelevantSections([]);
       setDynamicSections(null);
+      setInsight(""); // Clear previous insights when text selection changes
     } else {
       setIsMenuMode(false);
       setRelevantSections([]);
       setActiveSectionIdx(null);
+      setInsight(""); // Clear insights when no text is selected
     }
   };
 
@@ -858,6 +887,7 @@ function App() {
       setSelectedUrl(originalPdfUrl);
       setActiveSectionIdx(null);
       setJumpCommand(null);
+      setInsight(""); // Clear insights when restoring original PDF
       // Keep selectedText and relevantSections so user can continue working with them
     }
   };
@@ -881,6 +911,25 @@ function App() {
     }
   };
 
+  // Check if embeddings exist and generate if needed
+  const ensureEmbeddingsReady = async () => {
+    try {
+      const response = await fetch("/embeddings-status");
+      const status = await response.json();
+
+      if (!status.embeddings_exist) {
+        console.log("Embeddings not found, generating automatically...");
+        await generateEmbeddings();
+      } else {
+        console.log("Embeddings already exist, ready for fast processing");
+      }
+    } catch (error) {
+      console.error("Error checking embeddings status:", error);
+      // Fallback: try to generate embeddings anyway
+      await generateEmbeddings();
+    }
+  };
+
   return (
     <div className="App">
       <div className="main-container">
@@ -898,6 +947,7 @@ function App() {
                 setSelectedText("");
                 setRelevantSections([]);
                 setDynamicSections(null); // Clear dynamic sections
+                setInsight(""); // Clear previous insights
                 setIsMenuMode(false);
 
                 // Generate embeddings after upload
@@ -936,7 +986,7 @@ function App() {
             )}
 
             <FileList
-              onSelect={(url) => {
+              onSelect={async (url) => {
                 // Only re-mount if URL actually changed
                 if (url !== selectedUrl) {
                   setPdfViewerKey((prev) => prev + 1); // Force re-mount for new PDF
@@ -946,6 +996,7 @@ function App() {
                 setSelectedText("");
                 setRelevantSections([]);
                 setDynamicSections(null); // Clear dynamic sections
+                setInsight(""); // Clear previous insights
                 setIsMenuMode(false);
 
                 // Now switch to the new PDF
@@ -953,6 +1004,9 @@ function App() {
                 setOriginalPdfUrl(url); // This becomes the new starting point
                 setJumpCommand(null);
                 setActiveSectionIdx(null);
+
+                // Ensure embeddings are ready for fast processing
+                await ensureEmbeddingsReady();
               }}
             />
           </div>

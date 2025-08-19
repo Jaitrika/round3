@@ -243,6 +243,60 @@ async def upload(files: List[UploadFile] = File(...)):
     )
 
 
+@app.get("/embeddings-status")
+async def check_embeddings_status():
+    """Check if embeddings cache exists and is up to date"""
+    try:
+        cache_file = CACHE_DIR / "embeddings.pkl"
+
+        if not cache_file.exists():
+            return {"embeddings_exist": False, "reason": "No cache file found"}
+
+        # Check if we have PDF files
+        pdf_files = [
+            f
+            for f in os.listdir(UPLOAD_DIR)
+            if os.path.isfile(os.path.join(UPLOAD_DIR, f)) and f.lower().endswith(".pdf")
+        ]
+
+        if not pdf_files:
+            return {"embeddings_exist": False, "reason": "No PDF files found"}
+
+        # Check if cache is up to date by comparing file hashes
+        from brains_1b.r_1b import md5_of_file
+
+        current_hashes = {}
+        for file in pdf_files:
+            full_path = os.path.join(UPLOAD_DIR, file)
+            try:
+                current_hashes[file] = md5_of_file(full_path)
+            except Exception:
+                continue
+
+        # Load cached hashes
+        try:
+            import pickle
+
+            with open(cache_file, "rb") as f:
+                cache_data = pickle.load(f)
+            cached_hashes = cache_data.get("file_hashes", {})
+
+            if cached_hashes == current_hashes:
+                return {"embeddings_exist": True, "cache_valid": True, "files_count": len(pdf_files)}
+            else:
+                return {
+                    "embeddings_exist": False,
+                    "reason": "Cache outdated - files changed",
+                    "files_count": len(pdf_files),
+                }
+        except Exception:
+            return {"embeddings_exist": False, "reason": "Cache file corrupted"}
+
+    except Exception as e:
+        print(f"Error checking embeddings status: {e}")
+        return {"embeddings_exist": False, "reason": f"Error: {str(e)}"}
+
+
 @app.post("/generate-embeddings")
 async def generate_embeddings():
     """Pre-generate embeddings for all uploaded PDFs to speed up future processing"""
@@ -265,25 +319,31 @@ async def generate_embeddings():
         with open(INPUT_FILE, "w") as f:
             json.dump(input_data, f, indent=4)
 
-        # Call the embeddings generation part using the correct function
-        from brains_1b import custom_parser
-
-        # This will generate and cache embeddings for all PDFs
-        backend_dir = Path(__file__).parent
-        pdf_folder = backend_dir / "documents"
-
+        # Call the core embeddings generation function
         print(f"Pre-generating embeddings for {len(files)} PDFs...")
 
-        # Use the correct function to process multiple documents
-        file_paths = [str(pdf_folder / filename) for filename in files]
-        all_sections = custom_parser.process_multiple_documents(file_paths)
+        # Use r_1b.core() which handles caching properly
+        r_1b.core()
 
-        print(f"Generated embeddings for {len(all_sections)} sections")
+        print("Embeddings generation completed using r_1b.core()")
+
+        # Verify cache was created
+        cache_file = CACHE_DIR / "embeddings.pkl"
+        sections_count = 0
+        if cache_file.exists():
+            try:
+                import pickle
+
+                with open(cache_file, "rb") as f:
+                    cache_data = pickle.load(f)
+                sections_count = len(cache_data.get("all_sections", []))
+            except Exception:
+                sections_count = 0
 
         return {
             "message": f"Embeddings generated successfully for {len(files)} PDFs",
             "files_processed": files,
-            "sections_count": len(all_sections),
+            "sections_count": sections_count,
         }
 
     except Exception as e:
