@@ -600,19 +600,28 @@ function App() {
   const [isNavigatingToSection, setIsNavigatingToSection] = useState(false); // Flag to prevent re-processing during navigation
   const [pdfViewerKey, setPdfViewerKey] = useState(0); // Stable key for PDF viewer
   const [isGeneratingEmbeddings, setIsGeneratingEmbeddings] = useState(false); // Loading state for embeddings
+  const [isGeneratingInsights, setIsGeneratingInsights] = useState(false); // Loading state for insights
+  const [isGeneratingPodcast, setIsGeneratingPodcast] = useState(false); // Loading state for podcast
+  const [insightsSuccess, setInsightsSuccess] = useState(false); // Success state for insights
+  const [podcastSuccess, setPodcastSuccess] = useState(false); // Success state for podcast
 
   const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c";
 
-  // Use dynamic sections if available, otherwise fall back to static analysis
+  // Only use dynamic sections (no default/static sections)
   const allSections = dynamicSections
-    ? (dynamicSections.subsection_analysis || []).map((sec, idx) => {
-        const sectionData = dynamicSections.extracted_sections[idx];
-        return { sec, sectionData, originalIdx: idx };
-      })
-    : (analysis.subsection_analysis || []).map((sec, idx) => {
-        const sectionData = analysis.extracted_sections[idx];
-        return { sec, sectionData, originalIdx: idx };
-      });
+    ? (dynamicSections.subsection_analysis || [])
+        .map((sec, idx) => {
+          const sectionData = dynamicSections.extracted_sections[idx];
+          return { sec, sectionData, originalIdx: idx };
+        })
+        .filter(({ sec, sectionData }) => {
+          // Keep sections that have either refined_text or a meaningful section_title
+          return (
+            (sec.refined_text && sec.refined_text.trim()) ||
+            (sectionData.section_title && sectionData.section_title.trim())
+          );
+        })
+    : []; // No default sections - only show after analysis
 
   // Cleanup on window close
   useEffect(() => {
@@ -646,6 +655,7 @@ function App() {
       const jumpData = {
         page: sectionData.page_number,
         text: sec.refined_text?.trim(),
+        section_title: sectionData.section_title, // Add section title for fallback search
       };
       console.log("Setting jump command:", jumpData);
       setJumpCommand(jumpData);
@@ -667,6 +677,25 @@ function App() {
     }
   };
 
+  // Manual function to check and update results (for debugging stuck states)
+  const checkForResults = async () => {
+    try {
+      const response = await fetch("/processing-status");
+      const status = await response.json();
+      console.log("Manual check - current status:", status);
+
+      if (status.status === "completed" && status.result) {
+        updateDynamicSections(status.result);
+        console.log("Manual update completed");
+      }
+    } catch (error) {
+      console.error("Error in manual check:", error);
+    }
+  };
+
+  // Expose checkForResults to window for debugging
+  window.checkForResults = checkForResults;
+
   // Poll processing status for async results
   const pollProcessingStatus = async () => {
     const maxAttempts = 60; // Poll for up to 60 seconds
@@ -679,18 +708,33 @@ function App() {
 
         console.log("Processing status:", status);
 
-        if (status.status === "completed" && status.result) {
-          updateDynamicSections(status.result);
-          return;
+        if (status.status === "completed") {
+          if (status.result) {
+            updateDynamicSections(status.result);
+            console.log("Polling stopped - processing completed successfully");
+          } else {
+            console.log("Processing completed but no results available");
+          }
+          return; // Stop polling
         } else if (status.status === "error") {
           console.error("Processing failed:", status.error);
-          return;
-        } else if (status.is_processing && attempts < maxAttempts) {
-          attempts++;
-          setTimeout(poll, 1000); // Poll every second
+          console.log("Polling stopped - processing failed");
+          return; // Stop polling
+        } else if (status.status === "processing" || status.is_processing) {
+          if (attempts < maxAttempts) {
+            attempts++;
+            setTimeout(poll, 1000); // Poll every second
+          } else {
+            console.log("Polling stopped - max attempts reached");
+            return; // Stop polling
+          }
+        } else {
+          console.log("Polling stopped - unknown status:", status);
+          return; // Stop polling
         }
       } catch (error) {
         console.error("Error polling status:", error);
+        return; // Stop polling on error
       }
     };
 
@@ -743,10 +787,13 @@ function App() {
         setOriginalPdfUrl(selectedUrl);
       }
 
-      // The actual filtering will happen in handleSaveInputResponse after backend processing
-      // For now, just show that text is selected
+      // Show menu mode and indicate processing is starting
       setIsMenuMode(true);
       setActiveSectionIdx(null);
+
+      // Clear previous sections and show loading state
+      setRelevantSections([]);
+      setDynamicSections(null);
     } else {
       setIsMenuMode(false);
       setRelevantSections([]);
@@ -759,8 +806,49 @@ function App() {
       alert("Please select text in the PDF before generating insights.");
       return;
     }
-    const result = await fetchInsights(selectedText);
-    setInsight(result);
+
+    setIsGeneratingInsights(true);
+    setInsightsSuccess(false);
+    try {
+      const result = await fetchInsights(selectedText);
+      setInsight(result);
+      setInsightsSuccess(true);
+      // Reset success state after animation
+      setTimeout(() => setInsightsSuccess(false), 2000);
+    } catch (error) {
+      console.error("Error generating insights:", error);
+    } finally {
+      setIsGeneratingInsights(false);
+    }
+  };
+
+  const handlePodcast = async () => {
+    if (!selectedText) {
+      alert("Please select text in the PDF before generating podcast.");
+      return;
+    }
+
+    setIsGeneratingPodcast(true);
+    setPodcastSuccess(false);
+    try {
+      const { fetchPodcast } = await import("./components/fetchPodcast");
+      const result = await fetchPodcast(selectedText);
+      if (result && result !== "Error generating podcast.") {
+        // Create audio element and play
+        const audio = new Audio(result);
+        audio.play();
+        setPodcastSuccess(true);
+        // Reset success state after animation
+        setTimeout(() => setPodcastSuccess(false), 2000);
+      } else {
+        alert("Failed to generate podcast. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error generating podcast:", error);
+      alert("Failed to generate podcast. Please try again.");
+    } finally {
+      setIsGeneratingPodcast(false);
+    }
   };
 
   const toggleMenuMode = () => setIsMenuMode(!isMenuMode);
@@ -882,6 +970,13 @@ function App() {
                   onSaveInputResponse={handleSaveInputResponse} // Pass callback for save-input response
                   selectedText={selectedText} // Pass selectedText as prop
                   isNavigatingToSection={isNavigatingToSection} // Pass navigation flag
+                  onInsights={handleInsights} // Pass insights handler
+                  onPodcast={handlePodcast} // Pass podcast handler
+                  isGeneratingInsights={isGeneratingInsights} // Pass loading state
+                  isGeneratingPodcast={isGeneratingPodcast} // Pass loading state
+                  insightsSuccess={insightsSuccess} // Pass success state
+                  podcastSuccess={podcastSuccess} // Pass success state
+                  hasRelevantSections={allSections.length > 0} // Pass sections availability
                 />
                 {originalPdfUrl && selectedUrl !== originalPdfUrl && (
                   <button
@@ -907,13 +1002,6 @@ function App() {
           >
             <div className="relevant-sections-header">
               <h3>Relevant Sections</h3>
-              <button
-                onClick={handleInsights}
-                disabled={!selectedText}
-                className="circular-btn"
-              >
-                {/* <img src={insightIcon} alt="Insights" className="btn-icon" /> */}
-              </button>
 
               <button className="toggle-menu-btn" onClick={toggleMenuMode}>
                 <span className="arrow-icon">{"←"}</span>
@@ -946,45 +1034,47 @@ function App() {
             )}
 
             <div className="relevant-sections-content">
-              {relevantSections.length > 0
-                ? relevantSections.map(({ sec, sectionData, originalIdx }) => (
-                    <button
-                      key={originalIdx}
-                      className={`relevant-section-btn ${
-                        activeSectionIdx === originalIdx ? "active" : ""
-                      }`}
-                      onClick={() =>
-                        handleSectionClick(sectionData, sec, originalIdx)
-                      }
-                    >
-                      <div className="section-title">
-                        {sectionData.section_title}
-                      </div>
-                      <div className="section-preview">
-                        {sec.refined_text?.substring(0, 100)}...
-                      </div>
-                    </button>
-                  ))
-                : allSections.length > 0
-                ? allSections.map(({ sec, sectionData, originalIdx }) => (
-                    <button
-                      key={originalIdx}
-                      className={`relevant-section-btn ${
-                        activeSectionIdx === originalIdx ? "active" : ""
-                      }`}
-                      onClick={() =>
-                        handleSectionClick(sectionData, sec, originalIdx)
-                      }
-                    >
-                      <div className="section-title">
-                        {sectionData.section_title}
-                      </div>
-                      <div className="section-preview">
-                        {sec.refined_text?.substring(0, 100)}...
-                      </div>
-                    </button>
-                  ))
-                : "Select text in the PDF to see relevant sections"}
+              {relevantSections.length > 0 ? (
+                relevantSections.map(({ sec, sectionData, originalIdx }) => (
+                  <button
+                    key={originalIdx}
+                    className={`relevant-section-btn ${
+                      activeSectionIdx === originalIdx ? "active" : ""
+                    }`}
+                    onClick={() =>
+                      handleSectionClick(sectionData, sec, originalIdx)
+                    }
+                  >
+                    <div className="section-title">
+                      {sectionData.section_title}
+                    </div>
+                    <div className="section-preview">
+                      {sec.refined_text && sec.refined_text.trim()
+                        ? `${sec.refined_text.substring(0, 100)}...`
+                        : `Page ${sectionData.page_number} - Click to navigate`}
+                    </div>
+                  </button>
+                ))
+              ) : selectedText && !dynamicSections ? (
+                <div className="loading-sections">
+                  <div
+                    style={{
+                      color: "#6a1cce",
+                      fontWeight: "600",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    🔄 Analyzing your text...
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#666" }}>
+                    Finding relevant sections across all documents
+                  </div>
+                </div>
+              ) : (
+                <div className="no-sections-message">
+                  Select text in the PDF to see relevant sections
+                </div>
+              )}
             </div>
           </div>
         </div>

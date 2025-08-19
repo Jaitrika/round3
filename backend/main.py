@@ -462,6 +462,14 @@ async def get_processing_status():
     return processing_status
 
 
+@app.post("/reset-processing-status")
+async def reset_processing_status():
+    """Reset processing status (for debugging stuck states)"""
+    global processing_status
+    processing_status = {"is_processing": False, "status": "idle", "message": "", "result": None, "error": None}
+    return {"message": "Processing status reset"}
+
+
 # ------------------------
 # Generate podcast
 # ------------------------
