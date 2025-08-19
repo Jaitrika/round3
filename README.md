@@ -1,122 +1,70 @@
-# Round3 Project
+# Getting Started with Create React App
 
-## Overview
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-It is a web-based application designed to provide insights and generate podcasts from uploaded PDF documents. The project integrates a React-based frontend with a FastAPI backend to deliver a seamless user experience. It leverages Adobe Embed API for document rendering and includes features like text selection, insights generation, and podcast creation.
+## Available Scripts
 
-## Features
+In the project directory, you can run:
 
-- **PDF Upload and Viewing**: Upload PDF files and view them directly in the browser using Adobe PDF Viewer.
-- **Text Selection**: Select text from the PDF for further processing.
-- **Insights Generation**: Generate actionable insights based on the selected text.
-- **Podcast Creation**: Create podcasts from the selected text with conversational scripts.
-- **File Management**: Automatically cleans up uploaded files and generated outputs when the user exits the application.
+### `npm start`
 
-## Project Structure
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
-```
-round3/
-├── backend/
-│   ├── main.py                # FastAPI backend logic
-│   ├── tts_generator.py       # Text-to-speech generation logic
-│   ├── brains_1b/             # Core processing logic
-│   │   ├── custom_parser.py   # Custom parsing utilities
-│   │   ├── r_1b.py            # Insights generation logic
-│   │   └── bulb.py            # LLM interaction logic
-│   ├── documents/             # Uploaded PDF files
-│   ├── cache_embeddings/      # Cached embeddings for insights
-│   └── output/                # Generated output files
-├── frontend/
-│   ├── src/
-│   │   ├── components/        # React components
-│   │   ├── App.js             # Main React application
-│   │   └── output/            # Frontend output files
-│   ├── public/                # Static assets
-│   └── package.json           # Frontend dependencies
-├── README.md                  # Project documentation
-└── requirements.txt           # Backend dependencies
-```
+The page will reload when you make changes.\
+You may also see any lint errors in the console.
 
-## Installation
+### `npm test`
 
-### Option 1: Docker (Recommended)
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-1. Build the Docker image:
+### `npm run build`
 
-   ```bash
-   docker build --platform linux/amd64 -t yourimageidentifier .
-   ```
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
 
-2. Run the application:
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!
 
-   ```bash
-   docker run -v /path/to/credentials:/credentials \
-     -e ADOBE_EMBED_API_KEY=<ADOBE_EMBED_API_KEY> \
-     -e LLM_PROVIDER=gemini \
-     -e GOOGLE_APPLICATION_CREDENTIALS=/credentials/adbe-gcp.json \
-     -e GEMINI_MODEL=gemini-2.5-flash \
-     -e TTS_PROVIDER=azure \
-     -e AZURE_TTS_KEY=TTS_KEY \
-     -e AZURE_TTS_ENDPOINT=TTS_ENDPOINT \
-     -p 8080:8080 \
-     yourimageidentifier
-   ```
+See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-3. Access the application at: `http://localhost:8080`
+### `npm run eject`
 
-4. To check Docker logs after starting:
-   ```bash
-   docker ps  # Get container ID
-   docker logs <container_id>
-   ```
+**Note: this is a one-way operation. Once you `eject`, you can't go back!**
 
-### Option 2: Local Development
+If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
 
-#### Backend Setup
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
 
-1. Create a virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-2. Navigate to the `backend` directory:
-   ```bash
-   cd backend
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r ../requirements.txt
-   ```
-4. Start the FastAPI server:
-   ```bash
-   uvicorn main:app --reload
-   ```
+You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
 
-#### Frontend Setup
+## Learn More
 
-1. Navigate to the `frontend` directory:
-   ```bash
-   cd frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the React development server:
-   ```bash
-   npm start
-   ```
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
-## Usage
+To learn React, check out the [React documentation](https://reactjs.org/).
 
-1. Open the application in your browser.
-2. Upload a PDF file using the file uploader.
-3. Select text from the PDF to generate insights or create a podcast.
-4. Use the action buttons to view insights or listen to the generated podcast.
+### Code Splitting
 
-## References
+This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
 
-- [FastAPI](https://fastapi.tiangolo.com/)
-- [React](https://reactjs.org/)
-- [Adobe PDF Viewer](https://www.adobe.io/apis/documentcloud/dcsdk/)
-- [Sentence Transformers](https://www.sbert.net/)
+### Analyzing the Bundle Size
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+
+### Making a Progressive Web App
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+
+### Advanced Configuration
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+
+### Deployment
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+
+### `npm run build` fails to minify
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
