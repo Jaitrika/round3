@@ -111,8 +111,7 @@ function FileList({ onSelect }) {
 
   const fetchFiles = async () => {
     try {
-      //const res = await fetch("http://127.0.0.1:8000/list-files/");
-      const res = await fetch("/list-files/");
+      const res = await fetch("http://127.0.0.1:8000/list-files/");
       const data = await res.json();
       setFiles(data.files || []);
     } catch (err) {
