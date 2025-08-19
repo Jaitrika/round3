@@ -19,8 +19,8 @@ A powerful web-based application that transforms PDF documents into actionable i
 ### Prerequisites
 
 - Docker installed on your system
-- Adobe Embed API Key ([Get one here](https://www.adobe.io/apis/documentcloud/dcsdk/))
-- Google API Key with Gemini access ([Get one here](https://ai.google.dev/))
+- Adobe Embed API Key 
+- Google API Key with Gemini access 
 
 ### 1. Build & Run
 
