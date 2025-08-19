@@ -131,7 +131,7 @@
 // }
 
 // export default App;
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import FileUploader from "./components/FileUploader";
 import FileList from "./components/FileList";
 import PDFViewer from "./components/PDFViewer";
@@ -143,6 +143,26 @@ function App() {
   const [jumpCommand, setJumpCommand] = useState(null);
   const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c";
 
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      console.log("Sending cleanup request...");
+      try {
+        const success = navigator.sendBeacon("http://127.0.0.1:8000/cleanup-on-exit");
+        console.log("Cleanup request sent successfully:", success);
+      } catch (e) {
+        console.error("sendBeacon failed, falling back to fetch:", e);
+        fetch("http://127.0.0.1:8000/cleanup-on-exit", { method: "POST" })
+          .then(() => console.log("Cleanup request sent via fetch."))
+          .catch((err) => console.error("Fetch cleanup request failed:", err));
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
   return (
     <div className="App">
       <div className="main-container">
@@ -222,6 +242,99 @@ function App() {
 
 export default App;
 
+// newwww
+// import React, { useState, useEffect } from "react";
+// import FileUploader from "./components/FileUploader";
+// import FileList from "./components/FileList";
+// import PDFViewer from "./components/PDFViewer";
+// import analysis from "./output/output.json";
+// import "./App.css";
+
+// function App() {
+//   const [selectedUrl, setSelectedUrl] = useState(null);
+//   const [jumpCommand, setJumpCommand] = useState(null);
+//   const ADOBE_CLIENT_ID = "fe1b11d2eeb245a6bfb854a1ff276c5c";
+
+//   useEffect(() => {
+//     const handleBeforeUnload = () => {
+//       navigator.sendBeacon("http://127.0.0.1:8000/cleanup-on-exit");
+//     };
+
+//     window.addEventListener("beforeunload", handleBeforeUnload);
+
+//     return () => {
+//       window.removeEventListener("beforeunload", handleBeforeUnload);
+//     };
+//   }, []); // empty deps → runs only once on mount/unmount
+
+//   return (
+//     <div className="App">
+//       <div className="main-container">
+//         <div className="content-grid">
+//           <div className="sidebar">
+//             <FileUploader
+//               onUploadComplete={(url) => {
+//                 setSelectedUrl(url);
+//                 setJumpCommand(null);
+//               }}
+//             />
+//             <FileList
+//               onSelect={(url) => {
+//                 setSelectedUrl(url);
+//                 setJumpCommand(null);
+//               }}
+//             />
+
+//             <div className="section-buttons">
+//               {analysis.subsection_analysis?.map((sec, idx) => {
+//                 const sectionData = analysis.extracted_sections[idx];
+//                 return (
+//                   <button
+//                     key={idx}
+//                     className="section-btn"
+//                     onClick={() => {
+//                       const cleanDocName = sectionData.document.replace(
+//                         /^\/+|\/+$/g,
+//                         ""
+//                       );
+//                       const documentUrl = `http://127.0.0.1:8000/files/${cleanDocName}`;
+//                       setSelectedUrl(documentUrl);
+
+//                       setTimeout(() => {
+//                         setJumpCommand({
+//                           page: sectionData.page_number,
+//                           text: sec.refined_text?.trim(),
+//                         });
+//                       }, 1000);
+//                     }}
+//                   >
+//                     Go to {sectionData.section_title}
+//                   </button>
+//                 );
+//               })}
+//             </div>
+//           </div>
+
+//           <div className="pdf-container">
+//             {selectedUrl ? (
+//               <PDFViewer
+//                 fileUrl={selectedUrl}
+//                 clientId={ADOBE_CLIENT_ID}
+//                 jumpCommand={jumpCommand}
+//               />
+//             ) : (
+//               <div className="placeholder-text">
+//                 No PDF selected. Upload or choose from the list.
+//               </div>
+//             )}
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default App;
 
 // // frontend/src/App.js
 // import React, { useState } from "react";

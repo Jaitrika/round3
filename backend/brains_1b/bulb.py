@@ -1,9 +1,6 @@
 import os
-#from langchain_openai import ChatOpenAI, AzureChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
-#from langchain_community.chat_models import ChatOllama
 from dotenv import load_dotenv
-import os
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 # Python libraries to be installed: langchain, langchain-openai, langchain-google-genai, langchain-community
 

@@ -542,6 +542,7 @@
 // export default PDFViewer;
 import React, { useEffect, useRef, useState } from "react";
 import { fetchInsights } from "./useInsights";
+import { fetchPodcast } from "./fetchPodcast";
 
 function PDFViewer({ fileUrl, clientId, jumpCommand }) {
   const containerRef = useRef(null);
@@ -549,6 +550,7 @@ function PDFViewer({ fileUrl, clientId, jumpCommand }) {
   const [apis, setApis] = useState(null);
   const [selectedText, setSelectedText] = useState("");
   const [insight, setInsight] = useState("");
+  const [podcast, setPodcast] = useState("");
 
   const viewerConfig = {
     embedMode: "SIZED_CONTAINER",
@@ -726,43 +728,121 @@ function PDFViewer({ fileUrl, clientId, jumpCommand }) {
   }, [jumpCommand, adobeViewer]);
 
   const handleInsights = async () => {
+    if (!selectedText) {
+      alert("Please select text in the PDF before generating a podcast.");
+      return;
+    }
+    
     const result = await fetchInsights(selectedText);
     setInsight(result);
   };
+  const handlepodcast = async () => {
+    if (!selectedText) {
+      alert("Please select text in the PDF before generating a podcast.");
+      return;
+    }
+    const result = await fetchPodcast(selectedText);
+    setPodcast(result);
+  };
 
   return (
-    <div>
-      <div
-        id="adobe-dc-viewer"
-        ref={containerRef}
-        style={{ height: "720px", width: "100%" }}
-      />
-      
-      <div className="insights-section">
-        <button className="insights-btn" onClick={handleInsights}>
+  <div>
+    <div
+      id="adobe-dc-viewer"
+      ref={containerRef}
+      style={{ height: "720px", width: "100%" }}
+    />
+
+    <div className="insights-section">
+      {/* Action Buttons */}
+      <div style={{ marginTop: "16px", display: "flex", gap: "12px" }}>
+        <button
+          onClick={handleInsights}
+          disabled={!selectedText}
+          style={{
+            padding: "8px 16px",
+            backgroundColor: "#007bff",
+            color: "#fff",
+            border: "none",
+            borderRadius: "8px",
+            cursor: selectedText ? "pointer" : "not-allowed",
+            opacity: selectedText ? 1 : 0.6,
+          }}
+        >
           Get Insights
         </button>
-        {insight && (
-          <div style={{ 
-            marginTop: "16px", 
-            padding: "16px", 
+
+        <button
+          onClick={handlepodcast}
+          disabled={!selectedText}
+          style={{
+            padding: "8px 16px",
+            backgroundColor: "#28a745",
+            color: "#fff",
+            border: "none",
+            borderRadius: "8px",
+            cursor: selectedText ? "pointer" : "not-allowed",
+            opacity: selectedText ? 1 : 0.6,
+          }}
+        >
+          Generate Podcast
+        </button>
+      </div>
+
+      {/* Podcast Player */}
+      {podcast && (
+        <div
+          style={{
+            marginTop: "16px",
+            padding: "16px",
             background: "rgba(255, 255, 255, 0.6)",
             borderRadius: "12px",
-            backdropFilter: "blur(5px)"
-          }}>
-            {insight}
-          </div>
-        )}
-        
-        <div className="selected-text">
-          <strong>This is your selected text:</strong>
-          <p>
-            {selectedText || <em>No text selected</em>}
-          </p>
+            backdropFilter: "blur(5px)",
+          }}
+        >
+          <strong>🎧 Your Podcast:</strong>
+          <audio controls style={{ display: "block", marginTop: 8, width: "100%" }}>
+            <source src={podcast} type="audio/mpeg" />
+            Your browser does not support the audio element.
+          </audio>
         </div>
+      )}
+
+      {/* Insights Box */}
+      {insight && (
+        <div
+          style={{
+            marginTop: "16px",
+            padding: "16px",
+            background: "rgba(255, 255, 255, 0.6)",
+            borderRadius: "12px",
+            backdropFilter: "blur(5px)",
+          }}
+        >
+          <strong>💡 Insights:</strong>
+          <p style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>{insight}</p>
+        </div>
+      )}
+
+      {/* Selected Text Box */}
+      <div
+        style={{
+          marginTop: "16px",
+          padding: "16px",
+          background: "rgba(255, 255, 255, 0.6)",
+          borderRadius: "12px",
+          backdropFilter: "blur(5px)",
+          minHeight: "60px",
+        }}
+      >
+        <strong>This is your selected text:</strong>
+        <p style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>
+          {selectedText || <em>No text selected</em>}
+        </p>
       </div>
     </div>
-  );
+  </div>
+);
 }
 
 export default PDFViewer;
